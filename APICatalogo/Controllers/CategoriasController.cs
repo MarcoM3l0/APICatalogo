@@ -17,12 +17,12 @@ public class CategoriasController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<Categoria>> Get()
+    public async Task<ActionResult<IEnumerable<Categoria>>> Get()
     {
 
         try
         {
-            var categorias = _context.Categorias.ToList();
+            var categorias = await _context.Categorias.ToListAsync();
 
             if (categorias is null)
             {
@@ -38,11 +38,11 @@ public class CategoriasController : ControllerBase
     }
 
     [HttpGet("{id:int}", Name = "ObterCategoria")]
-    public ActionResult<Categoria> Get(int id)
+    public async Task<ActionResult<Categoria>> Get(int id)
     {
         try
         {
-            var categoria = _context.Categorias.Find(id);
+            var categoria = await _context.Categorias.FindAsync(id);
             if (categoria is null)
             {
                 return NotFound($"Categoria com id={id} não encontrada...");
@@ -56,11 +56,11 @@ public class CategoriasController : ControllerBase
     }
 
     [HttpGet("produtos")]
-    public ActionResult<IEnumerable<Categoria>> GetCategoriasProdutos()
+    public async Task<ActionResult<IEnumerable<Categoria>>> GetCategoriasProdutos()
     {
         try
         {
-            var categorias = _context.Categorias.Include(x => x.Produtos).ToList();
+            var categorias = await _context.Categorias.Include(x => x.Produtos).ToListAsync();
             if (categorias is null)
             {
                 return NotFound("Categorias não encontradas...");

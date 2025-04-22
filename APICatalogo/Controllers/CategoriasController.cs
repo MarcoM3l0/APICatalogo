@@ -11,9 +11,22 @@ public class CategoriasController : ControllerBase
 {
 
     private readonly AppDbContext _context;
-    public CategoriasController(AppDbContext contexto)
+    private readonly IConfiguration _configuration;
+    public CategoriasController(AppDbContext contexto, IConfiguration configuration)
     {
         _context = contexto;
+        _configuration = configuration;
+    }
+
+
+    [HttpGet("LerArquivoConfigucao")]
+    public string GetValores()
+    {
+        var valor1 = _configuration["chave1"];
+        var valor2 = _configuration["chave2"];
+        var secao1 = _configuration["secao1:chave2"];
+
+        return $"Valor1: {valor1} - Valor2: {valor2} - Secao1: {secao1}";
     }
 
     [HttpGet]

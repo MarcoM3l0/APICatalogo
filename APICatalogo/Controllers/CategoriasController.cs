@@ -18,17 +18,6 @@ public class CategoriasController : ControllerBase
         _configuration = configuration;
     }
 
-
-    [HttpGet("LerArquivoConfigucao")]
-    public string GetValores()
-    {
-        var valor1 = _configuration["chave1"];
-        var valor2 = _configuration["chave2"];
-        var secao1 = _configuration["secao1:chave2"];
-
-        return $"Valor1: {valor1} - Valor2: {valor2} - Secao1: {secao1}";
-    }
-
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Categoria>>> Get()
     {
@@ -53,6 +42,14 @@ public class CategoriasController : ControllerBase
     [HttpGet("{id:int}", Name = "ObterCategoria")]
     public async Task<ActionResult<Categoria>> Get(int id)
     {
+        throw new Exception("Erro ao buscar categoria..."); // Simulando erro para teste do middleware 
+
+        //string[] texto = null;
+        //if(texto.Length > 0)
+        //{
+           
+        //}
+
         try
         {
             var categoria = await _context.Categorias.FindAsync(id);

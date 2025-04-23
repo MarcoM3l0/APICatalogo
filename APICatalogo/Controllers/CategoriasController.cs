@@ -1,4 +1,5 @@
 ﻿using APICatalogo.context;
+using APICatalogo.Filters;
 using APICatalogo.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +20,7 @@ public class CategoriasController : ControllerBase
     }
 
     [HttpGet]
+    [ServiceFilter(typeof(ApiLoggingFilter))]
     public async Task<ActionResult<IEnumerable<Categoria>>> Get()
     {
 

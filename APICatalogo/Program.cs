@@ -1,6 +1,7 @@
 using APICatalogo.context;
 using APICatalogo.Extensions;
 using APICatalogo.Filters;
+using APICatalogo.Loggin;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 
@@ -22,6 +23,11 @@ string mysqlConnection = builder.Configuration.GetConnectionString("DefaultConne
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(mysqlConnection,
         ServerVersion.AutoDetect(mysqlConnection)));
+
+builder.Logging.AddProvider(new CustomLoggerProvider(new CustomLoggerProviderConfiguration
+{
+    LogLevel = LogLevel.Information
+}));
 
 var app = builder.Build();
 

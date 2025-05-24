@@ -31,7 +31,7 @@ public class CustomLogger : ILogger
 
     private void EscreverTextoNoArquivo(string message)
     {
-        string caminhoArquivo = @"D:\Faculdade\log\log_Api_Controle.txt";
+        string caminhoArquivo = @"D:\Api_controle\log\log_Api_Controle.txt";
         using (StreamWriter streamWriter = new StreamWriter(caminhoArquivo, true))
         {
             try

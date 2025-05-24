@@ -48,111 +48,73 @@ public class CategoriasController : ControllerBase
     [HttpGet("{id:int}", Name = "ObterCategoria")]
     public async Task<ActionResult<Categoria>> Get(int id)
     {
-        //throw new Exception("Erro ao buscar categoria..."); // Simulando erro para teste do middleware 
-
-        //string[] texto = null;
-        //if(texto.Length > 0)
-        //{
-
-        //}
-
+        //throw new Exception("Erro ao buscar categoria..."); // Simulando erro para teste do middleware
+        //throw new ArgumentException("Ocorreu um erro no tratamento de request"); // Simulando erro para teste
+            
         
+        var categoria = await _context.Categorias.FindAsync(id);
 
-        try
+        _logger.LogInformation($"=========== Get - categoria/id={id} ===========");
+
+        if (categoria is null)
         {
-            var categoria = await _context.Categorias.FindAsync(id);
-
-            _logger.LogInformation($"=========== Get - categoria/id={id} ===========");
-
-            if (categoria is null)
-            {
-                _logger.LogInformation("=========== Categoria não encontrada ===========");
-                return NotFound($"Categoria com id={id} não encontrada...");
-            }
-            return categoria;
+            _logger.LogInformation("=========== Categoria não encontrada ===========");
+            return NotFound($"Categoria com id={id} não encontrada...");
         }
-        catch (Exception)
-        {
-           _logger.LogError($"=========== Erro ao buscar categoria com id={id} ===========");
-            return StatusCode(StatusCodes.Status500InternalServerError, "Erro ao se comunicar com o servidor...");
-        }
+        return categoria;
+        
     }
 
     [HttpGet("produtos")]
     public async Task<ActionResult<IEnumerable<Categoria>>> GetCategoriasProdutos()
     {
-        try
-        {
-            _logger.LogInformation("=========== Get - categoria/produto ===========");
+        _logger.LogInformation("=========== Get - categoria/produto ===========");
 
-            var categorias = await _context.Categorias.Include(x => x.Produtos).ToListAsync();
-            if (categorias is null)
-            {
-                return NotFound("Categorias não encontradas...");
-            }
-            return categorias;
-        }
-        catch (Exception)
+        var categorias = await _context.Categorias.Include(x => x.Produtos).ToListAsync();
+        if (categorias is null)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, "Erro ao se comunicar com o servidor...");
+            return NotFound("Categorias não encontradas...");
         }
+        return categorias;
+        
     }
 
     [HttpPost]
     public ActionResult Post(Categoria categoria)
     {
-        try
-        {
+        if (categoria is null)
+            return BadRequest("Categoria é nula...");
 
-            if (categoria is null)
-                return BadRequest("Categoria é nula...");
-
-            _context.Categorias.Add(categoria);
-            _context.SaveChanges();
-            return new CreatedAtRouteResult("ObterCategoria", new { id = categoria.CategoriaId }, categoria);
-        }
-        catch (Exception)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, "Erro ao se comunicar com o servidor...");
-        }
+        _context.Categorias.Add(categoria);
+        _context.SaveChanges();
+        return new CreatedAtRouteResult("ObterCategoria", new { id = categoria.CategoriaId }, categoria);
+        
     }
 
     [HttpPut("{id:int}")]
     public ActionResult Put(int id, Categoria categoria)
     {
-        try
+        
+        if (id != categoria.CategoriaId)
         {
-            if (id != categoria.CategoriaId)
-            {
-                return BadRequest($"Categoria com id={id} não encontrada...");
-            }
-            _context.Entry(categoria).State = EntityState.Modified;
-            _context.SaveChanges();
-            return Ok(categoria);
+            return BadRequest($"Categoria com id={id} não encontrada...");
         }
-        catch (Exception)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, "Erro ao se comunicar com o servidor...");
-        }
+        _context.Entry(categoria).State = EntityState.Modified;
+        _context.SaveChanges();
+        return Ok(categoria);
+        
     }
 
     [HttpDelete("{id:int}")]
     public ActionResult<Categoria> Delete(int id)
     {
-        try
+        var categoria = _context.Categorias.Find(id);
+        if (categoria is null)
         {
-            var categoria = _context.Categorias.Find(id);
-            if (categoria is null)
-            {
-                return NotFound($"Categoria com id={id} não encontrada...");
-            }
-            _context.Categorias.Remove(categoria);
-            _context.SaveChanges();
-            return categoria;
+            return NotFound($"Categoria com id={id} não encontrada...");
         }
-        catch (Exception)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, "Erro ao se comunicar com o servidor...");
-        }
+        _context.Categorias.Remove(categoria);
+        _context.SaveChanges();
+        return categoria;
     }
 }

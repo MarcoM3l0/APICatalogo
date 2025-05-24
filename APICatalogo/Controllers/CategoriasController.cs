@@ -13,10 +13,12 @@ public class CategoriasController : ControllerBase
 
     private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
-    public CategoriasController(AppDbContext contexto, IConfiguration configuration)
+    private readonly ILogger<CategoriasController> _logger;
+    public CategoriasController(AppDbContext contexto, IConfiguration configuration, ILogger<CategoriasController> logger)
     {
         _context = contexto;
         _configuration = configuration;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -26,6 +28,8 @@ public class CategoriasController : ControllerBase
 
         try
         {
+            _logger.LogInformation("=========== Get - categoria ===========");
+
             var categorias = await _context.Categorias.ToListAsync();
 
             if (categorias is null)
@@ -44,25 +48,32 @@ public class CategoriasController : ControllerBase
     [HttpGet("{id:int}", Name = "ObterCategoria")]
     public async Task<ActionResult<Categoria>> Get(int id)
     {
-        throw new Exception("Erro ao buscar categoria..."); // Simulando erro para teste do middleware 
+        //throw new Exception("Erro ao buscar categoria..."); // Simulando erro para teste do middleware 
 
         //string[] texto = null;
         //if(texto.Length > 0)
         //{
-           
+
         //}
+
+        
 
         try
         {
             var categoria = await _context.Categorias.FindAsync(id);
+
+            _logger.LogInformation($"=========== Get - categoria/id={id} ===========");
+
             if (categoria is null)
             {
+                _logger.LogInformation("=========== Categoria não encontrada ===========");
                 return NotFound($"Categoria com id={id} não encontrada...");
             }
             return categoria;
         }
         catch (Exception)
         {
+           _logger.LogError($"=========== Erro ao buscar categoria com id={id} ===========");
             return StatusCode(StatusCodes.Status500InternalServerError, "Erro ao se comunicar com o servidor...");
         }
     }
@@ -72,6 +83,8 @@ public class CategoriasController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("=========== Get - categoria/produto ===========");
+
             var categorias = await _context.Categorias.Include(x => x.Produtos).ToListAsync();
             if (categorias is null)
             {
@@ -90,6 +103,7 @@ public class CategoriasController : ControllerBase
     {
         try
         {
+
             if (categoria is null)
                 return BadRequest("Categoria é nula...");
 

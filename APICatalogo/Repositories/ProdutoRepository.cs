@@ -7,10 +7,12 @@ namespace APICatalogo.Repositories;
 public class ProdutoRepository : IProdutoRepository
 {
     private readonly AppDbContext _context;
+    private readonly ILogger<ProdutoRepository> _logger;
 
-    public ProdutoRepository(AppDbContext context)
+    public ProdutoRepository(AppDbContext context, ILogger<ProdutoRepository> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public IQueryable<Produto> GetProdutos()
@@ -25,7 +27,10 @@ public class ProdutoRepository : IProdutoRepository
     public Produto Create(Produto produto)
     {
         if(produto is null)
+        {
+            _logger.LogError("Post - Produto não pode ser nulo ao criar.");
             throw new InvalidOperationException("Produto não pode ser nulo");
+        }
 
         _context.Produtos.Add(produto);
         _context.SaveChanges();
@@ -36,7 +41,10 @@ public class ProdutoRepository : IProdutoRepository
     public bool Update(Produto produto)
     {
         if(produto is null)
+        {
+            _logger.LogError("Put - Produto não pode ser nulo ao atualizar.");
             throw new ArgumentNullException(nameof(produto), "Produto não pode ser nulo");
+        }
 
         if(_context.Produtos.Any(p => p.ProdutoId == produto.ProdutoId)){
 

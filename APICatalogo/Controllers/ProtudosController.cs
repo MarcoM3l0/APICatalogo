@@ -21,13 +21,13 @@ public class ProtudosController : ControllerBase
     [HttpGet]
     public ActionResult<IEnumerable<Produto>> Get()
     {
-        _logger.LogInformation("=========== Get - produtos ===========");
+        _logger.LogInformation("Get - produtos");
 
         var produtos = _repository.GetProdutos().AsNoTracking().ToList();
 
         if (produtos is null)
         {
-            _logger.LogInformation("=========== Produtos não encontrados ===========");
+            _logger.LogWarning("get - Produtos não encontrados");
             return NotFound("Produtos não encontrados...");
         }
 
@@ -38,13 +38,13 @@ public class ProtudosController : ControllerBase
     [HttpGet("{id:int}", Name = "ObterProduto")]
     public ActionResult<Produto> Get(int id)
     {
-        _logger.LogInformation($"=========== Get - produto/id={id} ===========");
+        _logger.LogInformation($"Get - produto/id={id}");
 
         var produto = _repository.GetProduto(id);
 
         if (produto is null)
         {
-            _logger.LogWarning($"=========== Produto com id={id} não encontrado ===========");
+            _logger.LogWarning($"Get - Produto com id={id} não encontrado");
             return NotFound($"Produto com id={id} não encontrado...");
         }
 
@@ -55,7 +55,7 @@ public class ProtudosController : ControllerBase
     [HttpPost]
     public ActionResult Post(Produto produto)
     {
-        _logger.LogInformation("=========== Post - produto ===========");
+        _logger.LogInformation("Post - produto");
         
         var produtoCriado = _repository.Create(produto);
         return new CreatedAtRouteResult("ObterProduto", new { id = produtoCriado.ProdutoId }, produtoCriado);
@@ -65,11 +65,11 @@ public class ProtudosController : ControllerBase
     [HttpPut("{id:int}")]
     public ActionResult Put(int id, Produto produto)
     {
-        _logger.LogInformation($"=========== Put - produto/id={id} ===========");
+        _logger.LogInformation($"Put - produto/id={id}");
 
         if (id != produto.ProdutoId)
         {
-            _logger.LogWarning($"=========== Id do produto não corresponde ao id informado na URL ===========");
+            _logger.LogWarning($"Put - Produto com id={id} não encontrado para atualização");
             return BadRequest($"Produto com id={id} não encontrado...");
         }
 
@@ -77,7 +77,7 @@ public class ProtudosController : ControllerBase
 
         if (!produtoAtualizado)
         {
-            _logger.LogWarning($"=========== Produto com id={id} não encontrado para atualização ===========");
+            _logger.LogWarning($"Put - Produto com id={id} não poder ser atualizado");
             return StatusCode(500, $"Produto com id={id} não encontrado...");
         }
 
@@ -87,13 +87,13 @@ public class ProtudosController : ControllerBase
     [HttpDelete("{id:int}")]
     public ActionResult<Produto> Delete(int id)
     {
-        _logger.LogInformation($"=========== Delete - produto/id={id} ===========");
+        _logger.LogInformation($"Delete - produto/id={id}");
 
         bool produtoRemovido = _repository.Delete(id);
 
         if (!produtoRemovido)
         {
-            _logger.LogWarning($"=========== Produto com id={id} não encontrado para remoção ===========");
+            _logger.LogWarning($"Delete - Produto com id={id} não poder ser removido");
             return StatusCode(500, $"Falha ao remover produto com id={id}...");
         }
 

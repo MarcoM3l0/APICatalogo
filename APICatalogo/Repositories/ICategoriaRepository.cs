@@ -6,6 +6,7 @@ public interface ICategoriaRepository
 {
     IEnumerable<Categoria> GetCategorias();
     Categoria? GetCategoria(int id);
+    IEnumerable<Categoria> GetCategoriasProdutos();
     Categoria Create(Categoria categoria);
     Categoria Update(Categoria categoria);
     Categoria Delete(int id);

@@ -57,19 +57,20 @@ public class CategoriasController : ControllerBase
 
     }
 
-    //[HttpGet("produtos")]
-    //public ActionResult<IEnumerable<Categoria>> GetCategoriasProdutos()
-    //{
-    //    _logger.LogInformation("=========== Get - categoria/produto ===========");
+    [HttpGet("produtos")]
+    public ActionResult<IEnumerable<Categoria>> GetCategoriasProdutos()
+    {
+        _logger.LogInformation("=========== Get - categoria/produto ===========");
 
-    //    var categorias = _repository.GetCategorias().Include(x => x.Produtos).ToListAsync();
-    //    if (categorias is null)
-    //    {
-    //        return NotFound("Categorias não encontradas...");
-    //    }
-    //    return categorias;
-        
-    //}
+        var categorias = _repository.GetCategoriasProdutos();
+        if (categorias is null)
+        {
+            _logger.LogWarning("=========== Produtos por categorias não encontradas ===========");
+            return NotFound("Categorias não encontradas...");
+        }
+        return Ok(categorias);
+
+    }
 
     [HttpPost]
     public ActionResult Post(Categoria categoria)

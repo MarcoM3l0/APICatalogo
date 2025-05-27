@@ -1,6 +1,7 @@
 ﻿using APICatalogo.context;
 using APICatalogo.Filters;
 using APICatalogo.Models;
+using APICatalogo.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,48 +12,39 @@ namespace APICatalogo.Controllers;
 public class CategoriasController : ControllerBase
 {
 
-    private readonly AppDbContext _context;
+    private readonly ICategoriaRepository _repository;
     private readonly IConfiguration _configuration;
     private readonly ILogger<CategoriasController> _logger;
-    public CategoriasController(AppDbContext contexto, IConfiguration configuration, ILogger<CategoriasController> logger)
+    public CategoriasController(ICategoriaRepository repository, IConfiguration configuration, ILogger<CategoriasController> logger)
     {
-        _context = contexto;
+        _repository = repository;
         _configuration = configuration;
         _logger = logger;
     }
 
     [HttpGet]
     [ServiceFilter(typeof(ApiLoggingFilter))]
-    public async Task<ActionResult<IEnumerable<Categoria>>> Get()
+    public ActionResult<IEnumerable<Categoria>> Get()
     {
-
-        try
-        {
             _logger.LogInformation("=========== Get - categoria ===========");
 
-            var categorias = await _context.Categorias.ToListAsync();
+            var categorias = _repository.GetCategorias();
 
             if (categorias is null)
             {
                 return NotFound("Categorias não encontradas...");
             }
-            return categorias;
-
-        }
-        catch (Exception)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, "Erro ao se comunicar com o servidor...");
-        }
+            return Ok(categorias);
     }
 
     [HttpGet("{id:int}", Name = "ObterCategoria")]
-    public async Task<ActionResult<Categoria>> Get(int id)
+    public ActionResult<Categoria> Get(int id)
     {
         //throw new Exception("Erro ao buscar categoria..."); // Simulando erro para teste do middleware
         //throw new ArgumentException("Ocorreu um erro no tratamento de request"); // Simulando erro para teste
-            
-        
-        var categoria = await _context.Categorias.FindAsync(id);
+
+
+        var categoria = _repository.GetCategoria(id);
 
         _logger.LogInformation($"=========== Get - categoria/id={id} ===========");
 
@@ -61,23 +53,23 @@ public class CategoriasController : ControllerBase
             _logger.LogInformation("=========== Categoria não encontrada ===========");
             return NotFound($"Categoria com id={id} não encontrada...");
         }
-        return categoria;
-        
+        return Ok(categoria);
+
     }
 
-    [HttpGet("produtos")]
-    public async Task<ActionResult<IEnumerable<Categoria>>> GetCategoriasProdutos()
-    {
-        _logger.LogInformation("=========== Get - categoria/produto ===========");
+    //[HttpGet("produtos")]
+    //public ActionResult<IEnumerable<Categoria>> GetCategoriasProdutos()
+    //{
+    //    _logger.LogInformation("=========== Get - categoria/produto ===========");
 
-        var categorias = await _context.Categorias.Include(x => x.Produtos).ToListAsync();
-        if (categorias is null)
-        {
-            return NotFound("Categorias não encontradas...");
-        }
-        return categorias;
+    //    var categorias = _repository.GetCategorias().Include(x => x.Produtos).ToListAsync();
+    //    if (categorias is null)
+    //    {
+    //        return NotFound("Categorias não encontradas...");
+    //    }
+    //    return categorias;
         
-    }
+    //}
 
     [HttpPost]
     public ActionResult Post(Categoria categoria)
@@ -85,22 +77,23 @@ public class CategoriasController : ControllerBase
         if (categoria is null)
             return BadRequest("Categoria é nula...");
 
-        _context.Categorias.Add(categoria);
-        _context.SaveChanges();
-        return new CreatedAtRouteResult("ObterCategoria", new { id = categoria.CategoriaId }, categoria);
+        var categoriaCriada = _repository.Create(categoria);
+        return new CreatedAtRouteResult("ObterCategoria", new { id = categoriaCriada.CategoriaId }, categoriaCriada);
         
     }
 
     [HttpPut("{id:int}")]
     public ActionResult Put(int id, Categoria categoria)
     {
-        
+
         if (id != categoria.CategoriaId)
         {
+            _logger.LogWarning($"=========== Id da categoria não corresponde ao id do objeto recebido: {id} ===========");
             return BadRequest($"Categoria com id={id} não encontrada...");
         }
-        _context.Entry(categoria).State = EntityState.Modified;
-        _context.SaveChanges();
+
+        _repository.Update(categoria);
+
         return Ok(categoria);
         
     }
@@ -108,13 +101,16 @@ public class CategoriasController : ControllerBase
     [HttpDelete("{id:int}")]
     public ActionResult<Categoria> Delete(int id)
     {
-        var categoria = _context.Categorias.Find(id);
-        if (categoria is null)
+        var categoria = _repository.GetCategoria(id);
+
+        if(categoria is null)
         {
+            _logger.LogWarning($"=========== Categoria com id={id} não encontrada ===========");
             return NotFound($"Categoria com id={id} não encontrada...");
         }
-        _context.Categorias.Remove(categoria);
-        _context.SaveChanges();
-        return categoria;
+
+        var categoriaExcluida = _repository.Delete(id);
+
+        return Ok(categoriaExcluida);
     }
 }

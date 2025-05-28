@@ -12,10 +12,10 @@ namespace APICatalogo.Controllers;
 public class CategoriasController : ControllerBase
 {
 
-    private readonly ICategoriaRepository _repository;
+    private readonly IRepository<Categoria> _repository;
     private readonly IConfiguration _configuration;
     private readonly ILogger<CategoriasController> _logger;
-    public CategoriasController(ICategoriaRepository repository, IConfiguration configuration, ILogger<CategoriasController> logger)
+    public CategoriasController(IRepository<Categoria> repository, IConfiguration configuration, ILogger<CategoriasController> logger)
     {
         _repository = repository;
         _configuration = configuration;
@@ -26,9 +26,7 @@ public class CategoriasController : ControllerBase
     [ServiceFilter(typeof(ApiLoggingFilter))]
     public ActionResult<IEnumerable<Categoria>> Get()
     {
-            _logger.LogInformation("Get - categoria");
-
-            var categorias = _repository.GetCategorias();
+            var categorias = _repository.GetAll();
 
             if (categorias is null)
             {
@@ -46,38 +44,20 @@ public class CategoriasController : ControllerBase
         //throw new ArgumentException("Ocorreu um erro no tratamento de request"); // Simulando erro para teste
 
 
-        var categoria = _repository.GetCategoria(id);
-
-        _logger.LogInformation($"Get - categoria/id={id}");
+        var categoria = _repository.GetById(c => c.CategoriaId == id);
 
         if (categoria is null)
         {
-            _logger.LogWarning("Get - Categoria não encontrada");
+            _logger.LogWarning($"Get - Categoria com id={id} não encontrada");
             return NotFound($"Categoria com id={id} não encontrada...");
         }
         return Ok(categoria);
 
     }
 
-    [HttpGet("produtos")]
-    public ActionResult<IEnumerable<Categoria>> GetCategoriasProdutos()
-    {
-        _logger.LogInformation("Get - categoria/produto");
-
-        var categorias = _repository.GetCategoriasProdutos();
-        if (categorias is null)
-        {
-            _logger.LogWarning("Get - Produtos por categorias não encontradas");
-            return NotFound("Categorias não encontradas...");
-        }
-        return Ok(categorias);
-
-    }
-
     [HttpPost]
     public ActionResult Post(Categoria categoria)
     {
-        _logger.LogInformation("Post - categoria");
 
         if (categoria is null)
         {
@@ -93,7 +73,6 @@ public class CategoriasController : ControllerBase
     [HttpPut("{id:int}")]
     public ActionResult Put(int id, Categoria categoria)
     {
-        _logger.LogInformation($"Put - categoria/id={id}");
 
         if (id != categoria.CategoriaId)
         {
@@ -110,9 +89,8 @@ public class CategoriasController : ControllerBase
     [HttpDelete("{id:int}")]
     public ActionResult<Categoria> Delete(int id)
     {
-        _logger.LogInformation($"Delete - categoria/id={id}");
 
-        var categoria = _repository.GetCategoria(id);
+        var categoria = _repository.GetById(c => c.CategoriaId == id);
 
         if(categoria is null)
         {
@@ -120,7 +98,7 @@ public class CategoriasController : ControllerBase
             return NotFound($"Categoria com id={id} não encontrada...");
         }
 
-        var categoriaExcluida = _repository.Delete(id);
+        var categoriaExcluida = _repository.Delete(categoria);
 
         return Ok(categoriaExcluida);
     }

@@ -15,7 +15,7 @@ public class UnitOfWork : IUnitOfWork
         _context = context;
     }
 
-    public IProdutoRepository Produtos
+    public IProdutoRepository ProdutosRepository
     {
         get
         {
@@ -23,7 +23,7 @@ public class UnitOfWork : IUnitOfWork
         }
     }
 
-    public ICategoriaRepository Categorias
+    public ICategoriaRepository CategoriasRepository
     {
         get
         {

@@ -2,7 +2,7 @@
 
 public interface IUnitOfWork
 {
-    IProdutoRepository Produtos { get; }
-    ICategoriaRepository Categorias { get; }
+    IProdutoRepository ProdutosRepository { get; }
+    ICategoriaRepository CategoriasRepository { get; }
     void Commit();
 }

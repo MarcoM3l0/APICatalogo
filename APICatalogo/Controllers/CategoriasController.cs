@@ -12,12 +12,12 @@ namespace APICatalogo.Controllers;
 public class CategoriasController : ControllerBase
 {
 
-    private readonly IRepository<Categoria> _repository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IConfiguration _configuration;
     private readonly ILogger<CategoriasController> _logger;
-    public CategoriasController(IRepository<Categoria> repository, IConfiguration configuration, ILogger<CategoriasController> logger)
+    public CategoriasController(IUnitOfWork unitOfWork, IConfiguration configuration, ILogger<CategoriasController> logger)
     {
-        _repository = repository;
+        _unitOfWork = unitOfWork;
         _configuration = configuration;
         _logger = logger;
     }
@@ -26,7 +26,7 @@ public class CategoriasController : ControllerBase
     [ServiceFilter(typeof(ApiLoggingFilter))]
     public ActionResult<IEnumerable<Categoria>> Get()
     {
-            var categorias = _repository.GetAll();
+            var categorias = _unitOfWork.CategoriasRepository.GetAll();
 
             if (categorias is null)
             {
@@ -44,7 +44,7 @@ public class CategoriasController : ControllerBase
         //throw new ArgumentException("Ocorreu um erro no tratamento de request"); // Simulando erro para teste
 
 
-        var categoria = _repository.GetById(c => c.CategoriaId == id);
+        var categoria = _unitOfWork.CategoriasRepository.GetById(c => c.CategoriaId == id);
 
         if (categoria is null)
         {
@@ -65,7 +65,8 @@ public class CategoriasController : ControllerBase
             return BadRequest("Categoria é nula...");
         }
 
-        var categoriaCriada = _repository.Create(categoria);
+        var categoriaCriada = _unitOfWork.CategoriasRepository.Create(categoria);
+        _unitOfWork.Commit();
         return new CreatedAtRouteResult("ObterCategoria", new { id = categoriaCriada.CategoriaId }, categoriaCriada);
         
     }
@@ -80,7 +81,8 @@ public class CategoriasController : ControllerBase
             return BadRequest($"Categoria com id={id} não encontrada...");
         }
 
-        _repository.Update(categoria);
+        _unitOfWork.CategoriasRepository.Update(categoria);
+        _unitOfWork.Commit();
 
         return Ok(categoria);
         
@@ -90,7 +92,7 @@ public class CategoriasController : ControllerBase
     public ActionResult<Categoria> Delete(int id)
     {
 
-        var categoria = _repository.GetById(c => c.CategoriaId == id);
+        var categoria = _unitOfWork.CategoriasRepository.GetById(c => c.CategoriaId == id);
 
         if(categoria is null)
         {
@@ -98,7 +100,8 @@ public class CategoriasController : ControllerBase
             return NotFound($"Categoria com id={id} não encontrada...");
         }
 
-        var categoriaExcluida = _repository.Delete(categoria);
+        var categoriaExcluida = _unitOfWork.CategoriasRepository.Delete(categoria);
+        _unitOfWork.Commit();
 
         return Ok(categoriaExcluida);
     }

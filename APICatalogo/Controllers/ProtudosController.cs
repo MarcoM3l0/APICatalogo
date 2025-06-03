@@ -4,6 +4,7 @@ using APICatalogo.DTOs.Mappings;
 using APICatalogo.Models;
 using APICatalogo.Repositories;
 using AutoMapper;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
@@ -75,6 +76,7 @@ public class ProtudosController : ControllerBase
         return Ok(produtosDto);
     }
 
+
     [HttpPost]
     public ActionResult<ProdutoDTO> Post(ProdutoDTO produtoDto)
     {
@@ -93,6 +95,40 @@ public class ProtudosController : ControllerBase
 
         return new CreatedAtRouteResult("ObterProduto", new { id = produtoCriado.ProdutoId }, produtoCriado);
         
+    }
+
+    [HttpPatch("{id:int}/UpdatePartial")]
+    public ActionResult<ProdutoDTOUpdateResponse> Patch(int id, JsonPatchDocument<ProdutoDTOUpdateRequest> patchProdutoDto)
+    {
+        if(patchProdutoDto is null || id <= 0)
+        {
+            _logger.LogWarning($"Patch - Produto com id={id} não encontrado para atualização parcial");
+            return BadRequest($"Produto com id={id} não encontrado...");
+        }
+
+        var produto = _unitOfWork.ProdutosRepository.GetById(p => p.ProdutoId == id);
+
+        if (produto is null)
+        {
+            _logger.LogWarning($"Patch - Produto com id={id} não encontrado para atualização parcial");
+            return NotFound($"Produto com id={id} não encontrado...");
+        }
+
+        var produtoUpdateRequest = _mapper.Map<ProdutoDTOUpdateRequest>(produto);
+        patchProdutoDto.ApplyTo(produtoUpdateRequest, ModelState);
+
+        if(!ModelState.IsValid || TryValidateModel(produtoUpdateRequest))
+        {
+            _logger.LogWarning($"Patch - Produto com id={id} não passou na validação do modelo");
+            return BadRequest(ModelState);
+        }
+
+        _mapper.Map(produtoUpdateRequest, produto);
+
+        _unitOfWork.ProdutosRepository.Update(produto);
+        _unitOfWork.Commit();
+
+        return Ok(_mapper.Map<ProdutoDTOUpdateResponse>(produto));
     }
 
     [HttpPut("{id:int}")]

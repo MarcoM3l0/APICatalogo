@@ -1,6 +1,10 @@
 ﻿using APICatalogo.context;
+using APICatalogo.DTOs;
+using APICatalogo.DTOs.Mappings;
 using APICatalogo.Models;
 using APICatalogo.Repositories;
+using AutoMapper;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
@@ -12,14 +16,16 @@ public class ProtudosController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ProtudosController> _logger;
-    public ProtudosController(IUnitOfWork unitOfWork, ILogger<ProtudosController> logger)
+    private readonly IMapper _mapper;
+    public ProtudosController(IUnitOfWork unitOfWork, ILogger<ProtudosController> logger, IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _mapper = mapper;
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<Produto>> Get()
+    public ActionResult<IEnumerable<ProdutoDTO>> Get()
     {
 
         var produtos = _unitOfWork.ProdutosRepository.GetAll();
@@ -30,12 +36,14 @@ public class ProtudosController : ControllerBase
             return NotFound("Produtos não encontrados...");
         }
 
-        return Ok(produtos);
+        var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
+
+        return Ok(produtosDto);
         
     }
 
     [HttpGet("{id:int}", Name = "ObterProduto")]
-    public ActionResult<Produto> Get(int id)
+    public ActionResult<ProdutoDTO> Get(int id)
     {
 
         var produto = _unitOfWork.ProdutosRepository.GetById(p => p.ProdutoId == id);
@@ -46,12 +54,14 @@ public class ProtudosController : ControllerBase
             return NotFound($"Produto com id={id} não encontrado...");
         }
 
-        return Ok(produto);
+        var produtoDto = _mapper.Map<ProdutoDTO>(produto);
+
+        return Ok(produtoDto);
        
     }
 
     [HttpGet("produto/{id}", Name = "ObterProdutosPorCategoria")]
-    public ActionResult<IEnumerable<Produto>> GetProdutosPorCategoria(int id)
+    public ActionResult<IEnumerable<ProdutoDTO>> GetProdutosPorCategoria(int id)
     {
         var produtos = _unitOfWork.ProdutosRepository.GetProdutoPorCategoria(id);
 
@@ -61,42 +71,88 @@ public class ProtudosController : ControllerBase
             return NotFound($"Produtos com categoria id={id} não encontrados...");
         }
 
-        return Ok(produtos);
+        var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
+
+        return Ok(produtosDto);
     }
 
+
     [HttpPost]
-    public ActionResult Post(Produto produto)
+    public ActionResult<ProdutoDTO> Post(ProdutoDTO produtoDto)
     {
-        if (produto is null)
+        if (produtoDto is null)
         {
             _logger.LogWarning("Post - Produto não informado");
             return BadRequest("Produto não informado...");
         }
 
+        var produto = _mapper.Map<Produto>(produtoDto);
+
         var produtoCriado = _unitOfWork.ProdutosRepository.Create(produto);
         _unitOfWork.Commit();
+
+        var produtoCriadoDto = _mapper.Map<ProdutoDTO>(produtoCriado);
+
         return new CreatedAtRouteResult("ObterProduto", new { id = produtoCriado.ProdutoId }, produtoCriado);
         
     }
 
+    [HttpPatch("{id:int}/UpdatePartial")]
+    public ActionResult<ProdutoDTOUpdateResponse> Patch(int id, JsonPatchDocument<ProdutoDTOUpdateRequest> patchProdutoDto)
+    {
+        if(patchProdutoDto is null || id <= 0)
+        {
+            _logger.LogWarning($"Patch - Produto com id={id} não encontrado para atualização parcial");
+            return BadRequest($"Produto com id={id} não encontrado...");
+        }
+
+        var produto = _unitOfWork.ProdutosRepository.GetById(p => p.ProdutoId == id);
+
+        if (produto is null)
+        {
+            _logger.LogWarning($"Patch - Produto com id={id} não encontrado para atualização parcial");
+            return NotFound($"Produto com id={id} não encontrado...");
+        }
+
+        var produtoUpdateRequest = _mapper.Map<ProdutoDTOUpdateRequest>(produto);
+        patchProdutoDto.ApplyTo(produtoUpdateRequest, ModelState);
+
+        if(!ModelState.IsValid || TryValidateModel(produtoUpdateRequest))
+        {
+            _logger.LogWarning($"Patch - Produto com id={id} não passou na validação do modelo");
+            return BadRequest(ModelState);
+        }
+
+        _mapper.Map(produtoUpdateRequest, produto);
+
+        _unitOfWork.ProdutosRepository.Update(produto);
+        _unitOfWork.Commit();
+
+        return Ok(_mapper.Map<ProdutoDTOUpdateResponse>(produto));
+    }
+
     [HttpPut("{id:int}")]
-    public ActionResult Put(int id, Produto produto)
+    public ActionResult<ProdutoDTO> Put(int id, ProdutoDTO produtoDto)
     {
 
-        if (id != produto.ProdutoId)
+        if (id != produtoDto.ProdutoId)
         {
             _logger.LogWarning($"Put - Produto com id={id} não encontrado para atualização");
             return BadRequest($"Produto com id={id} não encontrado...");
         }
 
+        var produto = _mapper.Map<Produto>(produtoDto);
+
         var produtoAtualizado = _unitOfWork.ProdutosRepository.Update(produto);
         _unitOfWork.Commit();
 
-        return Ok(produtoAtualizado);
+        var produtoAtualizadoDto = _mapper.Map<ProdutoDTO>(produtoAtualizado);
+
+        return Ok(produtoAtualizadoDto);
     }
 
     [HttpDelete("{id:int}")]
-    public ActionResult<Produto> Delete(int id)
+    public ActionResult<ProdutoDTO> Delete(int id)
     {
         var produto = _unitOfWork.ProdutosRepository.GetById(p => p.ProdutoId == id);
 
@@ -109,7 +165,9 @@ public class ProtudosController : ControllerBase
         var produtoRemovido = _unitOfWork.ProdutosRepository.Delete(produto);
         _unitOfWork.Commit();
 
-        return Ok(produtoRemovido);
+        var produtoRemovidoDto = _mapper.Map<ProdutoDTO>(produtoRemovido);
+
+        return Ok(produtoRemovidoDto);
 
     }
 }

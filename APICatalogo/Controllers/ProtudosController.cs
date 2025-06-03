@@ -1,4 +1,6 @@
 ﻿using APICatalogo.context;
+using APICatalogo.DTOs;
+using APICatalogo.DTOs.Mappings;
 using APICatalogo.Models;
 using APICatalogo.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +21,7 @@ public class ProtudosController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<Produto>> Get()
+    public ActionResult<IEnumerable<ProdutoDTO>> Get()
     {
 
         var produtos = _unitOfWork.ProdutosRepository.GetAll();
@@ -35,7 +37,7 @@ public class ProtudosController : ControllerBase
     }
 
     [HttpGet("{id:int}", Name = "ObterProduto")]
-    public ActionResult<Produto> Get(int id)
+    public ActionResult<ProdutoDTO> Get(int id)
     {
 
         var produto = _unitOfWork.ProdutosRepository.GetById(p => p.ProdutoId == id);
@@ -51,7 +53,7 @@ public class ProtudosController : ControllerBase
     }
 
     [HttpGet("produto/{id}", Name = "ObterProdutosPorCategoria")]
-    public ActionResult<IEnumerable<Produto>> GetProdutosPorCategoria(int id)
+    public ActionResult<IEnumerable<ProdutoDTO>> GetProdutosPorCategoria(int id)
     {
         var produtos = _unitOfWork.ProdutosRepository.GetProdutoPorCategoria(id);
 
@@ -65,38 +67,38 @@ public class ProtudosController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult Post(Produto produto)
+    public ActionResult<ProdutoDTO> Post(ProdutoDTO produtoDto)
     {
-        if (produto is null)
+        if (produtoDto is null)
         {
             _logger.LogWarning("Post - Produto não informado");
             return BadRequest("Produto não informado...");
         }
 
-        var produtoCriado = _unitOfWork.ProdutosRepository.Create(produto);
+        var produtoCriado = _unitOfWork.ProdutosRepository.Create(produtoDto);
         _unitOfWork.Commit();
         return new CreatedAtRouteResult("ObterProduto", new { id = produtoCriado.ProdutoId }, produtoCriado);
         
     }
 
     [HttpPut("{id:int}")]
-    public ActionResult Put(int id, Produto produto)
+    public ActionResult<ProdutoDTO> Put(int id, ProdutoDTO produtoDto)
     {
 
-        if (id != produto.ProdutoId)
+        if (id != produtoDto.ProdutoId)
         {
             _logger.LogWarning($"Put - Produto com id={id} não encontrado para atualização");
             return BadRequest($"Produto com id={id} não encontrado...");
         }
 
-        var produtoAtualizado = _unitOfWork.ProdutosRepository.Update(produto);
+        var produtoAtualizado = _unitOfWork.ProdutosRepository.Update(produtoDto);
         _unitOfWork.Commit();
 
         return Ok(produtoAtualizado);
     }
 
     [HttpDelete("{id:int}")]
-    public ActionResult<Produto> Delete(int id)
+    public ActionResult<ProdutoDTO> Delete(int id)
     {
         var produto = _unitOfWork.ProdutosRepository.GetById(p => p.ProdutoId == id);
 

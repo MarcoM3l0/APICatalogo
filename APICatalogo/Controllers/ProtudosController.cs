@@ -2,6 +2,7 @@
 using APICatalogo.DTOs;
 using APICatalogo.DTOs.Mappings;
 using APICatalogo.Models;
+using APICatalogo.Pagination;
 using APICatalogo.Repositories;
 using AutoMapper;
 using Microsoft.AspNetCore.JsonPatch;
@@ -39,7 +40,23 @@ public class ProtudosController : ControllerBase
         var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
 
         return Ok(produtosDto);
-        
+
+    }
+
+    [HttpGet("pagination")]
+    public ActionResult<IEnumerable<ProdutoDTO>> Get([FromQuery] ProdutosParameters produtosParameters) {
+
+        var produtos = _unitOfWork.ProdutosRepository.GetProdutos(produtosParameters);
+
+        if (produtos is null || !produtos.Any())
+        {
+            _logger.LogWarning("get - Produtos não encontrados com paginação");
+            return NotFound("Produtos não encontrados...");
+        }
+
+        var produtosDtp = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
+
+        return Ok(produtosDtp);
     }
 
     [HttpGet("{id:int}", Name = "ObterProduto")]

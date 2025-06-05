@@ -9,16 +9,17 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace APICatalogo.Controllers;
 [Route("[controller]")]
 [ApiController]
-public class ProtudosController : ControllerBase
+public class ProdutosController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ILogger<ProtudosController> _logger;
+    private readonly ILogger<ProdutosController> _logger;
     private readonly IMapper _mapper;
-    public ProtudosController(IUnitOfWork unitOfWork, ILogger<ProtudosController> logger, IMapper mapper)
+    public ProdutosController(IUnitOfWork unitOfWork, ILogger<ProdutosController> logger, IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -53,6 +54,18 @@ public class ProtudosController : ControllerBase
             _logger.LogWarning("get - Produtos não encontrados com paginação");
             return NotFound("Produtos não encontrados...");
         }
+
+        var metadata = new
+        {
+            produtos.TotalCount,
+            produtos.PageSize,
+            produtos.CurrentPage,
+            produtos.TotalPages,
+            produtos.HasNext,
+            produtos.HasPrevious
+        };
+
+        Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
 
         var produtosDtp = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
 

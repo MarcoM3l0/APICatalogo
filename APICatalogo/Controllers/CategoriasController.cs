@@ -3,6 +3,7 @@ using APICatalogo.DTOs;
 using APICatalogo.DTOs.Mappings;
 using APICatalogo.Filters;
 using APICatalogo.Models;
+using APICatalogo.Pagination;
 using APICatalogo.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -60,6 +61,34 @@ public class CategoriasController : ControllerBase
 
         return Ok(categoriaDto);
 
+    }
+
+    [HttpGet("pagination")]
+    public ActionResult<IEnumerable<CategoriaDTO>> Get([FromQuery] CategoriasParameters categoriasParameters)
+    {
+        var categorias = _unitOfWork.CategoriasRepository.GetCategorias(categoriasParameters);
+
+        if (categorias is null || !categorias.Any())
+        {
+            _logger.LogWarning("Get - Categorias não encontradas com paginação");
+            return NotFound("Categorias não encontradas...");
+        }
+
+        var metadata = new
+        {
+            categorias.TotalCount,
+            categorias.PageSize,
+            categorias.CurrentPage,
+            categorias.TotalPages,
+            categorias.HasNext,
+            categorias.HasPrevious
+        };
+    
+        Response.Headers.Append("X-Pagination", System.Text.Json.JsonSerializer.Serialize(metadata));
+    
+        var categoriasDto = categorias.ToCategoriaDtoList();
+    
+        return Ok(categoriasDto);
     }
 
     [HttpPost]

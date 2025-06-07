@@ -2,26 +2,47 @@
 using APICatalogo.DTOs;
 using APICatalogo.DTOs.Mappings;
 using APICatalogo.Models;
+using APICatalogo.Pagination;
 using APICatalogo.Repositories;
 using AutoMapper;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace APICatalogo.Controllers;
 [Route("[controller]")]
 [ApiController]
-public class ProtudosController : ControllerBase
+public class ProdutosController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ILogger<ProtudosController> _logger;
+    private readonly ILogger<ProdutosController> _logger;
     private readonly IMapper _mapper;
-    public ProtudosController(IUnitOfWork unitOfWork, ILogger<ProtudosController> logger, IMapper mapper)
+    public ProdutosController(IUnitOfWork unitOfWork, ILogger<ProdutosController> logger, IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
         _mapper = mapper;
+    }
+
+    private ActionResult<IEnumerable<ProdutoDTO>> obterProdutos(PagedList<Produto> produtos)
+    {
+        var metadata = new
+        {
+            produtos.TotalCount,
+            produtos.PageSize,
+            produtos.CurrentPage,
+            produtos.TotalPages,
+            produtos.HasNext,
+            produtos.HasPrevious
+        };
+
+        Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
+
+        var produtosDtp = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
+
+        return Ok(produtosDtp);
     }
 
     [HttpGet]
@@ -39,7 +60,36 @@ public class ProtudosController : ControllerBase
         var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
 
         return Ok(produtosDto);
-        
+
+    }
+
+    [HttpGet("pagination")]
+    public ActionResult<IEnumerable<ProdutoDTO>> Get([FromQuery] ProdutosParameters produtosParameters)
+    {
+
+        var produtos = _unitOfWork.ProdutosRepository.GetProdutos(produtosParameters);
+
+        if (produtos is null || !produtos.Any())
+        {
+            _logger.LogWarning("get - Produtos não encontrados com paginação");
+            return NotFound("Produtos não encontrados...");
+        }
+
+        return obterProdutos(produtos);
+    }
+
+    [HttpGet("filtro/preco/pagination")]
+    public ActionResult<IEnumerable<ProdutoDTO>> GetProdutosPorPreco([FromQuery] ProdutosFiltroPreco produtosFiltroParameters)
+    {
+        var produtos = _unitOfWork.ProdutosRepository.GetProdutosFiltro(produtosFiltroParameters);
+
+        if (produtos is null || !produtos.Any())
+        {
+            _logger.LogWarning("get - Produtos não encontrados com filtro de preço");
+            return NotFound("Produtos não encontrados...");
+        }
+
+        return obterProdutos(produtos);
     }
 
     [HttpGet("{id:int}", Name = "ObterProduto")]

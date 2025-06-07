@@ -3,10 +3,12 @@ using APICatalogo.DTOs;
 using APICatalogo.DTOs.Mappings;
 using APICatalogo.Filters;
 using APICatalogo.Models;
+using APICatalogo.Pagination;
 using APICatalogo.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace APICatalogo.Controllers;
 [Route("[controller]")]
@@ -22,6 +24,23 @@ public class CategoriasController : ControllerBase
         _unitOfWork = unitOfWork;
         _configuration = configuration;
         _logger = logger;
+    }
+    private ActionResult<IEnumerable<CategoriaDTO>> obterCategorias(PagedList<Categoria> categorias)
+    {
+        var metadata = new
+        {
+            categorias.TotalCount,
+            categorias.PageSize,
+            categorias.CurrentPage,
+            categorias.TotalPages,
+            categorias.HasNext,
+            categorias.HasPrevious
+        };
+
+        Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
+
+        var categoriasDto = categorias.ToCategoriaDtoList();
+        return Ok(categoriasDto);
     }
 
     [HttpGet]
@@ -61,6 +80,35 @@ public class CategoriasController : ControllerBase
         return Ok(categoriaDto);
 
     }
+
+    [HttpGet("pagination")]
+    public ActionResult<IEnumerable<CategoriaDTO>> Get([FromQuery] CategoriasParameters categoriasParameters)
+    {
+        var categorias = _unitOfWork.CategoriasRepository.GetCategorias(categoriasParameters);
+
+        if (categorias is null || !categorias.Any())
+        {
+            _logger.LogWarning("Get - Categorias não encontradas com paginação");
+            return NotFound("Categorias não encontradas...");
+        }
+
+        return obterCategorias(categorias);
+    }
+
+    [HttpGet("filtro/nome/pagination")]
+    public ActionResult<IEnumerable<CategoriaDTO>> GetCategoriaFiltroNome([FromQuery] CategoriasFiltroNome categoriasFiltroNome)
+    {
+        var categorias = _unitOfWork.CategoriasRepository.GetCategoriasFiltroNome(categoriasFiltroNome);
+
+        if (categorias is null || !categorias.Any())
+        {
+            _logger.LogWarning("GetCategoriaFiltroNome - Categorias não encontradas com filtro de nome");
+            return NotFound("Categorias não encontradas...");
+        }
+
+        return obterCategorias(categorias);
+    }
+
 
     [HttpPost]
     public ActionResult<CategoriaDTO> Post(CategoriaDTO categoriaDto)

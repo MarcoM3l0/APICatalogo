@@ -2,6 +2,6 @@
 
 public class ProdutosFiltroPreco : QueryStringParameters
 {
-    public decimal? Preco;
-    public string? PrecoCriterio; // Exemplo: "menor", "maior", "igual"
+    public decimal? Preco { get; set; }
+    public string? PrecoCriterio { get; set; } // Exemplo: "menor", "maior", "igual"
 }

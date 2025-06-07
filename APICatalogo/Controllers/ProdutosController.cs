@@ -72,6 +72,32 @@ public class ProdutosController : ControllerBase
         return Ok(produtosDtp);
     }
 
+    [HttpGet("filtro/preco/pagination")]
+    public ActionResult<IEnumerable<ProdutoDTO>> GetProdutosPorPreco([FromQuery] ProdutosFiltroPreco produtosFiltroParameters)
+    {
+        var produtos = _unitOfWork.ProdutosRepository.GetProdutosFiltro(produtosFiltroParameters);
+
+        if (produtos is null || !produtos.Any())
+        {
+            _logger.LogWarning("get - Produtos não encontrados com filtro de preço");
+            return NotFound("Produtos não encontrados...");
+        }
+
+        var metadata = new
+        {
+            produtos.TotalCount,
+            produtos.PageSize,
+            produtos.CurrentPage,
+            produtos.TotalPages,
+            produtos.HasNext,
+            produtos.HasPrevious
+        };
+
+        Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
+        var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
+        return Ok(produtosDto);
+    }
+
     [HttpGet("{id:int}", Name = "ObterProduto")]
     public ActionResult<ProdutoDTO> Get(int id)
     {

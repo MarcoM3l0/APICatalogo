@@ -26,6 +26,25 @@ public class ProdutosController : ControllerBase
         _mapper = mapper;
     }
 
+    private ActionResult<IEnumerable<ProdutoDTO>> obterProdutos(PagedList<Produto> produtos)
+    {
+        var metadata = new
+        {
+            produtos.TotalCount,
+            produtos.PageSize,
+            produtos.CurrentPage,
+            produtos.TotalPages,
+            produtos.HasNext,
+            produtos.HasPrevious
+        };
+
+        Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
+
+        var produtosDtp = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
+
+        return Ok(produtosDtp);
+    }
+
     [HttpGet]
     public ActionResult<IEnumerable<ProdutoDTO>> Get()
     {
@@ -45,7 +64,8 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpGet("pagination")]
-    public ActionResult<IEnumerable<ProdutoDTO>> Get([FromQuery] ProdutosParameters produtosParameters) {
+    public ActionResult<IEnumerable<ProdutoDTO>> Get([FromQuery] ProdutosParameters produtosParameters)
+    {
 
         var produtos = _unitOfWork.ProdutosRepository.GetProdutos(produtosParameters);
 
@@ -55,21 +75,7 @@ public class ProdutosController : ControllerBase
             return NotFound("Produtos não encontrados...");
         }
 
-        var metadata = new
-        {
-            produtos.TotalCount,
-            produtos.PageSize,
-            produtos.CurrentPage,
-            produtos.TotalPages,
-            produtos.HasNext,
-            produtos.HasPrevious
-        };
-
-        Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
-
-        var produtosDtp = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
-
-        return Ok(produtosDtp);
+        return obterProdutos(produtos);
     }
 
     [HttpGet("filtro/preco/pagination")]
@@ -83,19 +89,7 @@ public class ProdutosController : ControllerBase
             return NotFound("Produtos não encontrados...");
         }
 
-        var metadata = new
-        {
-            produtos.TotalCount,
-            produtos.PageSize,
-            produtos.CurrentPage,
-            produtos.TotalPages,
-            produtos.HasNext,
-            produtos.HasPrevious
-        };
-
-        Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(metadata));
-        var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
-        return Ok(produtosDto);
+        return obterProdutos(produtos);
     }
 
     [HttpGet("{id:int}", Name = "ObterProduto")]

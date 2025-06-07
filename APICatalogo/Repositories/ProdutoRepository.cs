@@ -23,6 +23,32 @@ public class ProdutoRepository : Repository<Produto>, IProdutoRepository
         return produtosOrdendos;
     }
 
+    public PagedList<Produto> GetProdutosFiltro(PordutosFiltroPreco produtosFiltroParams)
+    {
+        var produtos = GetAll().AsQueryable();
+
+        if (produtosFiltroParams.Preco.HasValue && !String.IsNullOrEmpty(produtosFiltroParams.PrecoCriterio))
+        {
+            if (produtosFiltroParams.PrecoCriterio.Equals("menor", StringComparison.OrdinalIgnoreCase))
+            {
+                produtos = produtos.Where(p => p.Preco < produtosFiltroParams.Preco.Value).OrderBy(p => p.ProdutoId);
+            }
+            else if (produtosFiltroParams.PrecoCriterio.Equals("maior", StringComparison.OrdinalIgnoreCase))
+            {
+                produtos = produtos.Where(p => p.Preco > produtosFiltroParams.Preco.Value).OrderBy(p => p.ProdutoId);
+            }
+            else if (produtosFiltroParams.PrecoCriterio.Equals("igual", StringComparison.OrdinalIgnoreCase))
+            {
+                produtos = produtos.Where(p => p.Preco == produtosFiltroParams.Preco.Value).OrderBy(p => p.ProdutoId);
+            }
+        }
+
+        var produtosFiltrados = PagedList<Produto>.ToPagedList(produtos, produtosFiltroParams.PageNumber, produtosFiltroParams.PageSize);
+
+        return produtosFiltrados; 
+
+    }
+
     //public IEnumerable<Produto> GetProdutos(ProdutosParameters produtosParameters)
     //{
     //    return GetAll()

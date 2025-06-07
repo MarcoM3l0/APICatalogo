@@ -23,7 +23,7 @@ public class ProdutoRepository : Repository<Produto>, IProdutoRepository
         return produtosOrdendos;
     }
 
-    public PagedList<Produto> GetProdutosFiltro(PordutosFiltroPreco produtosFiltroParams)
+    public PagedList<Produto> GetProdutosFiltro(ProdutosFiltroPreco produtosFiltroParams)
     {
         var produtos = GetAll().AsQueryable();
 

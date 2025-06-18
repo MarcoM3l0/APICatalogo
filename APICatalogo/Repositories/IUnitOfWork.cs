@@ -4,5 +4,5 @@ public interface IUnitOfWork
 {
     IProdutoRepository ProdutosRepository { get; }
     ICategoriaRepository CategoriasRepository { get; }
-    void Commit();
+    Task CommitAsync();
 }

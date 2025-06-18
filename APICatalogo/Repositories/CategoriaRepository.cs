@@ -12,23 +12,26 @@ public class CategoriaRepository : Repository<Categoria>, ICategoriaRepository
     {
     }
 
-    public PagedList<Categoria> GetCategorias(CategoriasParameters categoriasParameters)
+    public async Task<PagedList<Categoria>> GetCategoriasAsync(CategoriasParameters categoriasParameters)
     {
-        var categorias = GetAll().OrderBy(c => c.CategoriaId).AsQueryable();
-        var categoriasOrdenadas = PagedList<Categoria>.ToPagedList(categorias, categoriasParameters.PageNumber, categoriasParameters.PageSize);
-        return categoriasOrdenadas;
+        var categorias = await GetAllAsync();
+
+        var categoriasOrdenadas = categorias.OrderBy(c => c.CategoriaId).AsQueryable();
+
+        var resultado = PagedList<Categoria>.ToPagedList(categoriasOrdenadas, categoriasParameters.PageNumber, categoriasParameters.PageSize);
+        return resultado;
     }
 
-    public PagedList<Categoria> GetCategoriasFiltroNome(CategoriasFiltroNome categoriasFiltroParameters)
+    public async Task<PagedList<Categoria>> GetCategoriasFiltroNomeAsync(CategoriasFiltroNome categoriasFiltroParameters)
     {
-        var categorias = GetAll().AsQueryable();
+        var categorias = await GetAllAsync();
 
         if (!string.IsNullOrEmpty(categoriasFiltroParameters.Nome))
         {
             categorias = categorias.Where(c => c.Nome.Contains(categoriasFiltroParameters.Nome));
         }
 
-        var categoriasFiltradas = PagedList<Categoria>.ToPagedList(categorias, categoriasFiltroParameters.PageNumber, categoriasFiltroParameters.PageSize);
+        var categoriasFiltradas = PagedList<Categoria>.ToPagedList(categorias.AsQueryable(), categoriasFiltroParameters.PageNumber, categoriasFiltroParameters.PageSize);
         return categoriasFiltradas;
     }
 }

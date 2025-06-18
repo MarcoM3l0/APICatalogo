@@ -4,8 +4,11 @@ using APICatalogo.Extensions;
 using APICatalogo.Filters;
 using APICatalogo.Loggin;
 using APICatalogo.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,6 +48,28 @@ builder.Logging.AddProvider(new CustomLoggerProvider(new CustomLoggerProviderCon
 }));
 
 builder.Services.AddAutoMapper(typeof(ProdutoDTOMappingProfile));
+
+var SecretKey = builder.Configuration["jwt:SecretKey"] ?? throw new ArgumentNullException("Chave secreta invalida!");
+
+builder.Services.AddAuthentication(option => { 
+    option.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    option.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(option =>
+{
+    option.SaveToken = true;
+    option.RequireHttpsMetadata = false;
+    option.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ClockSkew = TimeSpan.Zero,
+        ValidAudience = builder.Configuration["jwt:Audience"] ?? throw new ArgumentNullException("Audiencia invalida!"),
+        ValidIssuer = builder.Configuration["jwt:Issuer"] ?? throw new ArgumentNullException("Emissor invalido!"),
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SecretKey))
+    };
+});
 
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication("Bearer")

@@ -105,6 +105,19 @@ builder.Services.AddAuthentication(option => {
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SecretKey))
     };
 });
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("SuperAdminOnly", policy => policy.RequireRole("Admin")
+        .RequireClaim("id", "Marco"));
+    options.AddPolicy("UserOnly", policy => policy.RequireRole("User"));
+    options.AddPolicy("ExclusivePolicyOnly", policy =>
+    {
+        policy.RequireAssertion(context =>
+            context.User.HasClaim(c => c.Type == "id" && c.Value == "Marco") || context.User.IsInRole("SuperAdmin")
+        );
+    });
+});
 
 var app = builder.Build();
 

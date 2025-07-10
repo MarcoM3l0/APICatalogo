@@ -52,7 +52,7 @@ builder.Logging.AddProvider(new CustomLoggerProvider(new CustomLoggerProviderCon
 
 builder.Services.AddAutoMapper(typeof(ProdutoDTOMappingProfile));
 
-var SecretKey = builder.Configuration["jwt:SecretKey"] ?? throw new ArgumentNullException("Chave secreta invalida!");
+var SecretKey = builder.Configuration["JWT:SecretKey"] ?? throw new ArgumentNullException("Chave secreta invalida!");
 
 builder.Services.AddAuthentication(option => { 
     option.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -68,8 +68,8 @@ builder.Services.AddAuthentication(option => {
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         ClockSkew = TimeSpan.Zero,
-        ValidAudience = builder.Configuration["jwt:Audience"] ?? throw new ArgumentNullException("Audiencia invalida!"),
-        ValidIssuer = builder.Configuration["jwt:Issuer"] ?? throw new ArgumentNullException("Emissor invalido!"),
+        ValidAudience = builder.Configuration["JWT:ValidAudience"] ?? throw new ArgumentNullException("Audiencia invalida!"),
+        ValidIssuer = builder.Configuration["JWT:ValidIssuer"] ?? throw new ArgumentNullException("Emissor invalido!"),
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SecretKey))
     };
 });

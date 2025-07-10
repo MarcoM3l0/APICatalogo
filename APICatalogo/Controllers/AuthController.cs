@@ -154,7 +154,7 @@ public class AuthController : ControllerBase
         });
     }
 
-    [Authorize]
+    [Authorize(Policy = "ExclusivePolicyOnly")]
     [HttpPost("revoke/{username}")]
     public async Task<IActionResult> Revoke(string username)
     {
@@ -172,6 +172,7 @@ public class AuthController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Policy = "SuperAdminOnly")]
     [HttpPost]
     [Route("create-role")]
     public async Task<IActionResult> CreateRole(string roleName)
@@ -216,6 +217,7 @@ public class AuthController : ControllerBase
 
     }
 
+    [Authorize(Policy = "SuperAdminOnly")]
     [HttpPost]
     [Route("AddUserToRole")]
     public async Task<IActionResult> AddUserToRole(string userEmail, string roleName)

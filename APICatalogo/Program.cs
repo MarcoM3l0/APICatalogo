@@ -27,6 +27,15 @@ builder.Services.AddControllers(option =>
     option.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 }).AddNewtonsoftJson();
 
+var OrigensComAcessosPermitidos = "_origensComAcessosPermitidos";
+
+builder.Services.AddCors(options =>
+    options.AddPolicy(name: OrigensComAcessosPermitidos,
+        policy => {
+            policy.WithOrigins("https://apirequest.io/", "https://4alltests.com.br/testeapis/");
+        })
+);
+
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(c =>
@@ -130,6 +139,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseRouting();
+
+app.UseCors(OrigensComAcessosPermitidos);
 
 app.UseAuthorization();
 

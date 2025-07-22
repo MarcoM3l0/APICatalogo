@@ -7,11 +7,13 @@ using APICatalogo.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Newtonsoft.Json;
 
 namespace APICatalogo.Controllers;
 
 [EnableCors("CorsPolicy")]
+[EnableRateLimiting("fixedwindow")]
 [Route("[controller]")]
 [ApiController]
 public class CategoriasController : ControllerBase
@@ -47,6 +49,7 @@ public class CategoriasController : ControllerBase
     //[Authorize]
     [HttpGet]
     [ServiceFilter(typeof(ApiLoggingFilter))]
+    [DisableRateLimiting]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> Get()
     {
         var categorias = await _unitOfWork.CategoriasRepository.GetAllAsync();

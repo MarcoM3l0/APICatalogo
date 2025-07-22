@@ -7,13 +7,14 @@ using APICatalogo.Models;
 using APICatalogo.Repositories;
 using APICatalogo.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +38,19 @@ builder.Services.AddCors(options =>
                 .AllowAnyMethod()
                 .AllowAnyHeader();
         });
+});
+
+builder.Services.AddRateLimiter(rateLimiterOption =>
+{
+    rateLimiterOption.AddFixedWindowLimiter(policyName: "fixedwindow",
+        options =>
+        {
+            options.PermitLimit = 1;
+            options.Window = TimeSpan.FromSeconds(5);
+            options.QueueLimit = 2;
+            options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        });
+    rateLimiterOption.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -145,7 +159,9 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-app.UseCors();
+app.UseRateLimiter();
+
+app.UseCors("CorsPolicy");
 
 app.UseAuthorization();
 

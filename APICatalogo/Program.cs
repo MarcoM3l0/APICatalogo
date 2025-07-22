@@ -7,6 +7,7 @@ using APICatalogo.Models;
 using APICatalogo.Repositories;
 using APICatalogo.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -32,8 +33,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: "CorsPolicy",
         policy =>
         {
-            policy.WithOrigins("https://localhost:7146/")
-                .WithMethods("GET", "POST")
+            policy.WithOrigins("https://localhost:44311")
+                .AllowAnyMethod()
                 .AllowAnyHeader();
         });
 });

@@ -4,6 +4,7 @@ using APICatalogo.Extensions;
 using APICatalogo.Filters;
 using APICatalogo.Loggin;
 using APICatalogo.Models;
+using APICatalogo.RateLimitOptions;
 using APICatalogo.Repositories;
 using APICatalogo.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -40,40 +41,45 @@ builder.Services.AddCors(options =>
         });
 });
 
+var myOption = new MyRateLimitOptions();
 
-//builder.Services.AddRateLimiter(rateLimiterOption =>
-//{
-//    rateLimiterOption.AddFixedWindowLimiter(policyName: "fixedwindow",
-//        options =>
-//        {
-//            options.PermitLimit = 1;
-//            options.Window = TimeSpan.FromSeconds(5);
-//            options.QueueLimit = 2;
-//            options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-//        });
-//    rateLimiterOption.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-//});
+builder.Configuration.GetSection(MyRateLimitOptions.MyRateLimit).Bind(myOption);
 
-builder.Services.AddRateLimiter(options =>
+builder.Services.AddRateLimiter(rateLimiterOption =>
 {
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
-        httpContext =>
-        
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: httpContext.User.Identity?.Name ?? httpContext.Request.Headers.Host.ToString(),
-                factory: partition => new FixedWindowRateLimiterOptions
-                {
-
-                    AutoReplenishment = true,
-                    PermitLimit = 2,
-                    QueueLimit = 0,
-                    Window = TimeSpan.FromSeconds(10)
-
-                })
-        );
+    rateLimiterOption.AddFixedWindowLimiter(policyName: "fixedwindow",
+        options =>
+        {
+            options.PermitLimit = myOption.PermitLimit;
+            options.Window = TimeSpan.FromSeconds(myOption.Window);
+            options.QueueLimit = myOption.QueueLimit;
+            options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        });
+    rateLimiterOption.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
+
+
+// Configuração do Rate Limiter Global
+//builder.Services.AddRateLimiter(options =>
+//{
+//    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+//    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
+//        httpContext =>
+
+//            RateLimitPartition.GetFixedWindowLimiter(
+//                partitionKey: httpContext.User.Identity?.Name ?? httpContext.Request.Headers.Host.ToString(),
+//                factory: partition => new FixedWindowRateLimiterOptions
+//                {
+
+//                    AutoReplenishment = true,
+//                    PermitLimit = 2,
+//                    QueueLimit = 0,
+//                    Window = TimeSpan.FromSeconds(10)
+
+//                })
+//        );
+//});
 
 builder.Services.AddEndpointsApiExplorer();
 

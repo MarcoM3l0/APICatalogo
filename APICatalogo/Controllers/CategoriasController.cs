@@ -13,7 +13,7 @@ using Newtonsoft.Json;
 namespace APICatalogo.Controllers;
 
 [EnableCors("CorsPolicy")]
-[EnableRateLimiting("fixedwindow")]
+//[EnableRateLimiting("fixedwindow")]
 [Route("[controller]")]
 [ApiController]
 public class CategoriasController : ControllerBase

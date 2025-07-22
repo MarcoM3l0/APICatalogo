@@ -40,17 +40,39 @@ builder.Services.AddCors(options =>
         });
 });
 
-builder.Services.AddRateLimiter(rateLimiterOption =>
+
+//builder.Services.AddRateLimiter(rateLimiterOption =>
+//{
+//    rateLimiterOption.AddFixedWindowLimiter(policyName: "fixedwindow",
+//        options =>
+//        {
+//            options.PermitLimit = 1;
+//            options.Window = TimeSpan.FromSeconds(5);
+//            options.QueueLimit = 2;
+//            options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+//        });
+//    rateLimiterOption.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+//});
+
+builder.Services.AddRateLimiter(options =>
 {
-    rateLimiterOption.AddFixedWindowLimiter(policyName: "fixedwindow",
-        options =>
-        {
-            options.PermitLimit = 1;
-            options.Window = TimeSpan.FromSeconds(5);
-            options.QueueLimit = 2;
-            options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        });
-    rateLimiterOption.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
+        httpContext =>
+        
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.User.Identity?.Name ?? httpContext.Request.Headers.Host.ToString(),
+                factory: partition => new FixedWindowRateLimiterOptions
+                {
+
+                    AutoReplenishment = true,
+                    PermitLimit = 2,
+                    QueueLimit = 0,
+                    Window = TimeSpan.FromSeconds(10)
+
+                })
+        );
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -58,10 +80,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "API Catalogo", Version = "v1" });
-    
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        
+
         Name = "Authorization",
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer",
@@ -112,7 +134,8 @@ builder.Services.AddAutoMapper(typeof(ProdutoDTOMappingProfile));
 
 var SecretKey = builder.Configuration["JWT:SecretKey"] ?? throw new ArgumentNullException("Chave secreta invalida!");
 
-builder.Services.AddAuthentication(option => { 
+builder.Services.AddAuthentication(option =>
+{
     option.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     option.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(option =>

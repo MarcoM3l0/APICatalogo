@@ -1,17 +1,17 @@
-﻿using APICatalogo.context;
-using APICatalogo.DTOs;
+﻿using APICatalogo.DTOs;
 using APICatalogo.DTOs.Mappings;
 using APICatalogo.Filters;
 using APICatalogo.Models;
 using APICatalogo.Pagination;
 using APICatalogo.Repositories;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
 namespace APICatalogo.Controllers;
+
+[EnableCors("CorsPolicy")]
 [Route("[controller]")]
 [ApiController]
 public class CategoriasController : ControllerBase
@@ -44,7 +44,7 @@ public class CategoriasController : ControllerBase
         return Ok(categoriasDto);
     }
 
-    [Authorize]
+    //[Authorize]
     [HttpGet]
     [ServiceFilter(typeof(ApiLoggingFilter))]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> Get()
@@ -62,6 +62,7 @@ public class CategoriasController : ControllerBase
         return Ok(categoriasDto);
     }
 
+    [DisableCors]
     [HttpGet("{id:int}", Name = "ObterCategoria")]
     public async Task<ActionResult<CategoriaDTO>> Get(int id)
     {

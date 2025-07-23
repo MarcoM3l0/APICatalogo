@@ -170,7 +170,7 @@ public class ProdutosController : ControllerBase
         var produtoUpdateRequest = _mapper.Map<ProdutoDTOUpdateRequest>(produto);
         patchProdutoDto.ApplyTo(produtoUpdateRequest, ModelState);
 
-        if(!ModelState.IsValid || TryValidateModel(produtoUpdateRequest))
+        if(!ModelState.IsValid || !TryValidateModel(produtoUpdateRequest))
         {
             _logger.LogWarning($"Patch - Produto com id={id} não passou na validação do modelo");
             return BadRequest(ModelState);

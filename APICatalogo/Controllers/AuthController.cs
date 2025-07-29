@@ -28,6 +28,12 @@ public class AuthController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// Verifica as credenciais do usuário e gera um token JWT se forem válidas.
+    /// </summary>
+    /// <param name="model">Um objeto do tipo UsuarioDTO.</param>
+    /// <returns>Status 200 (OK) e o token para credenciais válidas.</returns>
+    /// <remarks>Retorna o Satatus 200 (OK) com o token.</remarks>
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginModel model)
     {
@@ -72,6 +78,11 @@ public class AuthController : ControllerBase
         return Unauthorized("Usuário ou senha inválidos!");
     }
 
+    /// <summary>
+    /// Registra um novo usuário no sistema.
+    /// </summary>
+    /// <param name="model">Um objeto do tipo UsuarioDTO.</param>
+    /// <returns>retorna Status 200 (OK) se o usuário for criado com sucesso.</returns>
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterModel model)
     {

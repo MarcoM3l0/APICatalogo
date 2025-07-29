@@ -46,7 +46,12 @@ public class CategoriasController : ControllerBase
         return Ok(categoriasDto);
     }
 
-    //[Authorize]
+
+    /// <summary>
+    /// Obtém todas os objetos de categoria
+    /// </summary>
+    /// <returns>Objetos Categoria se encontrados, ou NotFound se não encontrados</returns>
+    [Authorize]
     [HttpGet]
     [ServiceFilter(typeof(ApiLoggingFilter))]
     [DisableRateLimiting]
@@ -65,6 +70,11 @@ public class CategoriasController : ControllerBase
         return Ok(categoriasDto);
     }
 
+    /// <summary>
+    /// Obtém uma categoria pelo id
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns>Objeto Categoria se encontrado, ou NotFound se não encontrado</returns>
     [DisableCors]
     [HttpGet("{id:int}", Name = "ObterCategoria")]
     public async Task<ActionResult<CategoriaDTO>> Get(int id)
@@ -115,7 +125,21 @@ public class CategoriasController : ControllerBase
         return ObterCategorias(categorias);
     }
 
-
+    /// <summary>
+    /// Inclui uma nova categoria
+    /// </summary>
+    /// <remarks>
+    /// Exemplo de request:
+    /// 
+    ///     POST /categorias
+    ///     {
+    ///         "CategoriaId": 1,
+    ///         "Nome": "Categoria Teste",
+    ///         "imagemUrl": "https://example.com/imagem.jpg"
+    ///     }
+    /// </remarks>
+    /// <param name="categoriaDto"></param>
+    /// <returns></returns>
     [HttpPost]
     public async Task<ActionResult<CategoriaDTO>> Post(CategoriaDTO categoriaDto)
     {

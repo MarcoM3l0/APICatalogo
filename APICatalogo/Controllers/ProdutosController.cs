@@ -47,6 +47,10 @@ public class ProdutosController : ControllerBase
         return Ok(produtosDtp);
     }
 
+    /// <summary>
+    /// Efetua a consulta de todos os produtos
+    /// </summary>
+    /// <returns>Retorna uma lista de objetos Produto se encontrados, ou NotFound se não encontrados.</returns>
     [Authorize(Policy = "UserOnly")]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get()
@@ -95,6 +99,11 @@ public class ProdutosController : ControllerBase
         return ObterProdutos(produtos);
     }
 
+    /// <summary>
+    /// Obtém um produto pelo id
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns>Um objeto Produto se encontrado, ou NotFound se não encontrado.</returns>
     [HttpGet("{id:int}", Name = "ObterProduto")]
     public async Task<ActionResult<ProdutoDTO>> Get(int id)
     {

@@ -47,6 +47,10 @@ public class ProdutosController : ControllerBase
         return Ok(produtosDtp);
     }
 
+    /// <summary>
+    /// Efetua a consulta de todos os produtos
+    /// </summary>
+    /// <returns>Retorna uma lista de objetos Produto se encontrados, ou NotFound se não encontrados.</returns>
     [Authorize(Policy = "UserOnly")]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get()
@@ -66,6 +70,11 @@ public class ProdutosController : ControllerBase
 
     }
 
+    /// <summary>
+    /// Recupera uma lista de produtos com paginação
+    /// </summary>
+    /// <param name="produtosParameters">Parametros de paginação para filtrar e ordenar os produtos.</param>
+    /// <returns>Retorna uma lista de objetos ProdutoDTO com paginação, ou NotFound se não encontrados.</returns>
     [HttpGet("pagination")]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get([FromQuery] ProdutosParameters produtosParameters)
     {
@@ -81,6 +90,11 @@ public class ProdutosController : ControllerBase
         return ObterProdutos(produtos);
     }
 
+    /// <summary>
+    /// Recupera uma lista de produtos filtrados por preço com paginação
+    /// </summary>
+    /// <param name="produtosFiltroParameters">Parametros de filtro de preço para filtrar e ordenar os produtos.</param>
+    /// <returns>Retorna uma lista de objetos ProdutoDTO filtrados por preço com paginação, ou NotFound se não encontrados.</returns>
     [HttpGet("filtro/preco/pagination")]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> GetProdutosPorPreco([FromQuery] ProdutosFiltroPreco produtosFiltroParameters)
     {
@@ -95,6 +109,11 @@ public class ProdutosController : ControllerBase
         return ObterProdutos(produtos);
     }
 
+    /// <summary>
+    /// Obtém um produto pelo id
+    /// </summary>
+    /// <param name="id">Parametro id e o identificador único do produto que será consultado.</param>
+    /// <returns>Um objeto Produto se encontrado, ou NotFound se não encontrado.</returns>
     [HttpGet("{id:int}", Name = "ObterProduto")]
     public async Task<ActionResult<ProdutoDTO>> Get(int id)
     {
@@ -113,6 +132,11 @@ public class ProdutosController : ControllerBase
        
     }
 
+    /// <summary>
+    /// Recupera uma lista de produtos por categoria
+    /// </summary>
+    /// <param name="id">Parametro id e o identificador único da categoria que será consultada.</param>
+    /// <returns>Uma lista de objetos ProdutoDTO filtrados por categoria se encontrados, ou NotFound se não encontrados.</returns>
     [HttpGet("produto/{id}", Name = "ObterProdutosPorCategoria")]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> GetProdutosPorCategoria(int id)
     {
@@ -129,7 +153,23 @@ public class ProdutosController : ControllerBase
         return Ok(produtosDto);
     }
 
-
+    /// <summary>
+    /// Cria um novo produto
+    /// </summary>
+    /// <remarks>
+    /// Exemplo de request:
+    /// 
+    ///     POST /produtos
+    ///     {
+    ///         "nome": "Produto Exemplo",
+    ///         "descricao": "Descrição do produto exemplo",
+    ///         "preco": 99.99,
+    ///         "imagemUrl": "http://example.com/imagem.jpg",
+    ///         "categoriaId": 1
+    ///     }
+    /// </remarks>
+    /// <param name="produtoDto"></param>
+    /// <returns>Retorna o status 201 Created com o objeto ProdutoDTO criado, ou BadRequest se o produto não for informado.</returns>
     [HttpPost]
     public async Task<ActionResult<ProdutoDTO>> Post(ProdutoDTO produtoDto)
     {
@@ -150,6 +190,27 @@ public class ProdutosController : ControllerBase
         
     }
 
+    /// <summary>
+    /// Parcialmente atualiza um produto
+    /// </summary>
+    /// <remarks>
+    /// Exemplo de request:
+    /// 
+    ///     PATCH /produtos/1/UpdatePartial
+    ///     {
+    ///         "produtoId": 1,
+    ///         "nome": "Produto atual",
+    ///         "descricao": "Descrição do produto sem ser atualizado",
+    ///         "preco": 89.99,
+    ///         "imagemUrl": "http://example.com/imagem-atual.jpg",
+    ///         "categoriaId": 1
+    ///     }
+    /// </remarks>
+    /// <param name="id">Parametro id e o identificador único do produto que será atualizado.</param>
+    /// <param name="patchProdutoDto">PatchDocument que contém as operações de atualização parcial a serem aplicadas ao produto.</param>
+    /// <returns>
+    /// Retorna o status 200 OK com o objeto ProdutoDTO atualizado, ou BadRequest se o produto não for informado ou se o id for inválido.
+    /// </returns>
     [HttpPatch("{id:int}/UpdatePartial")]
     public async Task<ActionResult<ProdutoDTOUpdateResponse>> Patch(int id, JsonPatchDocument<ProdutoDTOUpdateRequest> patchProdutoDto)
     {
@@ -170,7 +231,7 @@ public class ProdutosController : ControllerBase
         var produtoUpdateRequest = _mapper.Map<ProdutoDTOUpdateRequest>(produto);
         patchProdutoDto.ApplyTo(produtoUpdateRequest, ModelState);
 
-        if(!ModelState.IsValid || TryValidateModel(produtoUpdateRequest))
+        if(!ModelState.IsValid || !TryValidateModel(produtoUpdateRequest))
         {
             _logger.LogWarning($"Patch - Produto com id={id} não passou na validação do modelo");
             return BadRequest(ModelState);
@@ -184,6 +245,29 @@ public class ProdutosController : ControllerBase
         return Ok(_mapper.Map<ProdutoDTOUpdateResponse>(produto));
     }
 
+    /// <summary>
+    /// Atualiza um produto existente
+    /// </summary>
+    /// <remarks>
+    /// Exemplo de request:
+    /// 
+    ///     PUT /produtos/1
+    ///     {
+    ///         "produtoId": 1,
+    ///         "nome": "Produto atualizado",
+    ///         "descricao": "Descrição do produto atualizado",
+    ///         "preco": 89.99,
+    ///         "imagemUrl": "http://example.com/imagem-atualizada.jpg",
+    ///         "categoriaId": 1
+    ///     }
+    /// </remarks>
+    /// <param name="id">Parametro id e o identificador único do produto que será atualizado.</param>
+    /// <param name="produtoDto">
+    /// Parametro produtoDto é o objeto ProdutoDTO que contém as informações atualizadas do produto.
+    /// </param>
+    /// <returns>
+    /// Retorna o status 200 OK com o objeto ProdutoDTO atualizado, ou BadRequest se o id não corresponder ao produtoDto ou se o produto não for encontrado.
+    /// </returns>
     [HttpPut("{id:int}")]
     public async Task<ActionResult<ProdutoDTO>> Put(int id, ProdutoDTO produtoDto)
     {
@@ -204,6 +288,11 @@ public class ProdutosController : ControllerBase
         return Ok(produtoAtualizadoDto);
     }
 
+    /// <summary>
+    /// Exclui um produto pelo id
+    /// </summary>
+    /// <param name="id">Parametro id é o identificador único do produto que será removido.</param>
+    /// <returns>Retorna o status 200 OK com o objeto ProdutoDTO removido, ou NotFound se o produto não for encontrado.</returns>
     [HttpDelete("{id:int}")]
     public async Task<ActionResult<ProdutoDTO>> Delete(int id)
     {

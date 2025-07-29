@@ -46,7 +46,12 @@ public class CategoriasController : ControllerBase
         return Ok(categoriasDto);
     }
 
-    //[Authorize]
+
+    /// <summary>
+    /// Obtém todas os objetos de categoria
+    /// </summary>
+    /// <returns>Objetos Categoria se encontrados, ou NotFound se não encontrados</returns>
+    [Authorize]
     [HttpGet]
     [ServiceFilter(typeof(ApiLoggingFilter))]
     [DisableRateLimiting]
@@ -65,6 +70,11 @@ public class CategoriasController : ControllerBase
         return Ok(categoriasDto);
     }
 
+    /// <summary>
+    /// Obtém uma categoria pelo id
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns>Objeto Categoria se encontrado, ou NotFound se não encontrado</returns>
     [DisableCors]
     [HttpGet("{id:int}", Name = "ObterCategoria")]
     public async Task<ActionResult<CategoriaDTO>> Get(int id)
@@ -87,6 +97,11 @@ public class CategoriasController : ControllerBase
 
     }
 
+    /// <summary>
+    /// Obtém uma lista de categorias com paginação
+    /// </summary>
+    /// <param name="categoriasParameters">Este parâmetro é usado para definir a paginação e filtragem das categorias.</param>
+    /// <returns>Retorna uma lista de objetos CategoriaDTO paginados se encontrados, ou NotFound se não encontrados.</returns>
     [HttpGet("pagination")]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> Get([FromQuery] CategoriasParameters categoriasParameters)
     {
@@ -101,6 +116,11 @@ public class CategoriasController : ControllerBase
         return ObterCategorias(categorias);
     }
 
+    /// <summary>
+    /// Obtém uma lista de categorias filtradas por nome com paginação
+    /// </summary>
+    /// <param name="categoriasFiltroNome">Este parâmetro é usado para definir a filtragem por nome e paginação das categorias.</param>
+    /// <returns>Retorna uma lista de objetos CategoriaDTO filtrados por nome e paginados se encontrados, ou NotFound se não encontrados.</returns>
     [HttpGet("filtro/nome/pagination")]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> GetCategoriaFiltroNome([FromQuery] CategoriasFiltroNome categoriasFiltroNome)
     {
@@ -115,7 +135,21 @@ public class CategoriasController : ControllerBase
         return ObterCategorias(categorias);
     }
 
-
+    /// <summary>
+    /// Inclui uma nova categoria
+    /// </summary>
+    /// <remarks>
+    /// Exemplo de request:
+    /// 
+    ///     POST /categorias
+    ///     {
+    ///         "CategoriaId": 1,
+    ///         "Nome": "Categoria Teste",
+    ///         "imagemUrl": "https://example.com/imagem.jpg"
+    ///     }
+    /// </remarks>
+    /// <param name="categoriaDto"></param>
+    /// <returns></returns>
     [HttpPost]
     public async Task<ActionResult<CategoriaDTO>> Post(CategoriaDTO categoriaDto)
     {
@@ -137,6 +171,24 @@ public class CategoriasController : ControllerBase
         
     }
 
+    /// <summary>
+    /// Atualiza uma categoria existente
+    /// </summary>
+    /// <remarks>
+    /// Exemplo de request:
+    /// 
+    ///     PUT /categorias/1
+    ///     {
+    ///         "CategoriaId": 1,
+    ///         "Nome": "Categoria Atualizada",
+    ///         "imagemUrl": "https://example.com/imagem-atualizada.jpg"
+    ///     }
+    /// </remarks>
+    /// <param name="id">Parametro id é o identificador da categoria a ser atualizada.</param>
+    /// <param name="categoriaDto">Parametro categoriaDto é o objeto que contém os dados atualizados da categoria.</param>
+    /// <returns>
+    /// Retorna o objeto CategoriaDTO atualizado se a atualização for bem-sucedida, ou BadRequest se o id não confere com o id do objeto.
+    /// </returns>
     [HttpPut("{id:int}")]
     public async Task<ActionResult<CategoriaDTO>> Put(int id, CategoriaDTO categoriaDto)
     {
@@ -158,6 +210,13 @@ public class CategoriasController : ControllerBase
         
     }
 
+    /// <summary>
+    /// Exclui uma categoria pelo id
+    /// </summary>
+    /// <param name="id">Parametro id é o identificador da categoria a ser excluída.</param>
+    /// <returns>
+    /// Retorna o objeto CategoriaDTO excluído se a exclusão for bem-sucedida, ou NotFound se a categoria não for encontrada.
+    /// </returns>
     [Authorize(policy:"AdminOnly")]
     [HttpDelete("{id:int}")]
     public async Task<ActionResult<CategoriaDTO>> Delete(int id)

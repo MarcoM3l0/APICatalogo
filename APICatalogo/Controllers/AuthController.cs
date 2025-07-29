@@ -124,6 +124,12 @@ public class AuthController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Aplica o refresh token para gerar um novo access token.
+    /// </summary>
+    /// <param name="token">Um objeto do tipo TokenModel que contém o access token e o refresh token.</param>
+    /// <returns>Retorna Status 200 (OK) com o novo access token e refresh token se o refresh for bem-sucedido.</returns>
+    /// <exception cref="ArgumentException">Ele é lançado se o token for nulo ou se o access token ou refresh token estiverem ausentes.</exception>
     [HttpPost("refresh-token")]
     public async Task<IActionResult> RefreshToken([FromBody] TokenModel token)
     {
@@ -165,6 +171,12 @@ public class AuthController : ControllerBase
         });
     }
 
+
+    /// <summary>
+    /// Revoca o refresh token de um usuário específico.
+    /// </summary>
+    /// <param name="username">Usename do usuário cujo refresh token será revogado.</param>
+    /// <returns>Retorna Status 204 (No Content) se o refresh token for revogado com sucesso.</returns>
     [Authorize(Policy = "ExclusivePolicyOnly")]
     [HttpPost("revoke/{username}")]
     public async Task<IActionResult> Revoke(string username)
@@ -183,6 +195,14 @@ public class AuthController : ControllerBase
         return NoContent();
     }
 
+
+    /// <summary>
+    /// Cria uma nova role (papel) no sistema.
+    /// </summary>
+    /// <param name="roleName">Constante que representa o nome da role a ser criada.</param>
+    /// <returns>
+    /// Retorna Status 200 (OK) se a role for criada com sucesso, ou Status 400 (Bad Request) se a role já existir ou ocorrer um erro ao criar a role.
+    /// </returns>
     [Authorize(Policy = "SuperAdminOnly")]
     [HttpPost]
     [Route("create-role")]
@@ -228,6 +248,14 @@ public class AuthController : ControllerBase
 
     }
 
+    /// <summary>
+    /// Adiciona um usuário a uma role (papel) específica.
+    /// </summary>
+    /// <param name="userEmail">Usário a ser adicionado à role. Deve ser o email do usuário.</param>
+    /// <param name="roleName">Nome da role (papel) a ser atribuída ao usuário. Deve ser uma role já existente no sistema.</param>
+    /// <returns>
+    /// Retorna Status 200 (OK) se o usuário for adicionado à role com sucesso, ou Status 400 (Bad Request) se ocorrer um erro ao adicionar o usuário à role ou se o usuário não for encontrado.
+    /// </returns>
     [Authorize(Policy = "SuperAdminOnly")]
     [HttpPost]
     [Route("AddUserToRole")]

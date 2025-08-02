@@ -1,6 +1,4 @@
-﻿using APICatalogo.context;
-using APICatalogo.DTOs;
-using APICatalogo.DTOs.Mappings;
+﻿using APICatalogo.DTOs;
 using APICatalogo.Models;
 using APICatalogo.Pagination;
 using APICatalogo.Repositories;
@@ -8,10 +6,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using System.Runtime.CompilerServices;
 
 namespace APICatalogo.Controllers;
 
@@ -30,6 +25,7 @@ namespace APICatalogo.Controllers;
 /// </remarks>
 [Route("[controller]")]
 [ApiController]
+[Produces("application/json")]
 public class ProdutosController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
@@ -74,6 +70,8 @@ public class ProdutosController : ControllerBase
     /// <returns>Retorna uma lista de objetos Produto se encontrados, ou NotFound se não encontrados.</returns>
     [Authorize(Policy = "UserOnly")]
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get()
     {
 
@@ -97,6 +95,8 @@ public class ProdutosController : ControllerBase
     /// <param name="produtosParameters">Parametros de paginação para filtrar e ordenar os produtos.</param>
     /// <returns>Retorna uma lista de objetos ProdutoDTO com paginação, ou NotFound se não encontrados.</returns>
     [HttpGet("pagination")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get([FromQuery] ProdutosParameters produtosParameters)
     {
 
@@ -117,6 +117,8 @@ public class ProdutosController : ControllerBase
     /// <param name="produtosFiltroParameters">Parametros de filtro de preço para filtrar e ordenar os produtos.</param>
     /// <returns>Retorna uma lista de objetos ProdutoDTO filtrados por preço com paginação, ou NotFound se não encontrados.</returns>
     [HttpGet("filtro/preco/pagination")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> GetProdutosPorPreco([FromQuery] ProdutosFiltroPreco produtosFiltroParameters)
     {
         var produtos = await _unitOfWork.ProdutosRepository.GetProdutosFiltroPrecoAsync(produtosFiltroParameters);
@@ -136,6 +138,8 @@ public class ProdutosController : ControllerBase
     /// <param name="id">Parametro id e o identificador único do produto que será consultado.</param>
     /// <returns>Um objeto Produto se encontrado, ou NotFound se não encontrado.</returns>
     [HttpGet("{id:int}", Name = "ObterProduto")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProdutoDTO>> Get(int id)
     {
 
@@ -159,6 +163,8 @@ public class ProdutosController : ControllerBase
     /// <param name="id">Parametro id e o identificador único da categoria que será consultada.</param>
     /// <returns>Uma lista de objetos ProdutoDTO filtrados por categoria se encontrados, ou NotFound se não encontrados.</returns>
     [HttpGet("produto/{id}", Name = "ObterProdutosPorCategoria")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> GetProdutosPorCategoria(int id)
     {
         var produtos = await _unitOfWork.ProdutosRepository.GetProdutoPorCategoriaAsync(id);
@@ -192,6 +198,8 @@ public class ProdutosController : ControllerBase
     /// <param name="produtoDto"></param>
     /// <returns>Retorna o status 201 Created com o objeto ProdutoDTO criado, ou BadRequest se o produto não for informado.</returns>
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ProdutoDTO>> Post(ProdutoDTO produtoDto)
     {
         if (produtoDto is null)
@@ -233,6 +241,9 @@ public class ProdutosController : ControllerBase
     /// Retorna o status 200 OK com o objeto ProdutoDTO atualizado, ou BadRequest se o produto não for informado ou se o id for inválido.
     /// </returns>
     [HttpPatch("{id:int}/UpdatePartial")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProdutoDTOUpdateResponse>> Patch(int id, JsonPatchDocument<ProdutoDTOUpdateRequest> patchProdutoDto)
     {
         if(patchProdutoDto is null || id <= 0)
@@ -290,6 +301,8 @@ public class ProdutosController : ControllerBase
     /// Retorna o status 200 OK com o objeto ProdutoDTO atualizado, ou BadRequest se o id não corresponder ao produtoDto ou se o produto não for encontrado.
     /// </returns>
     [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ProdutoDTO>> Put(int id, ProdutoDTO produtoDto)
     {
 
@@ -315,6 +328,8 @@ public class ProdutosController : ControllerBase
     /// <param name="id">Parametro id é o identificador único do produto que será removido.</param>
     /// <returns>Retorna o status 200 OK com o objeto ProdutoDTO removido, ou NotFound se o produto não for encontrado.</returns>
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProdutoDTO>> Delete(int id)
     {
         var produto = await _unitOfWork.ProdutosRepository.GetAsync(p => p.ProdutoId == id);

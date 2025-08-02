@@ -28,6 +28,7 @@ namespace APICatalogo.Controllers;
 [EnableRateLimiting("fixedwindow")]
 [Route("[controller]")]
 [ApiController]
+[Produces("application/json")]
 public class CategoriasController : ControllerBase
 {
 
@@ -74,6 +75,8 @@ public class CategoriasController : ControllerBase
     [HttpGet]
     [ServiceFilter(typeof(ApiLoggingFilter))]
     [DisableRateLimiting]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> Get()
     {
         var categorias = await _unitOfWork.CategoriasRepository.GetAllAsync();
@@ -96,6 +99,8 @@ public class CategoriasController : ControllerBase
     /// <returns>Objeto Categoria se encontrado, ou NotFound se não encontrado</returns>
     [DisableCors]
     [HttpGet("{id:int}", Name = "ObterCategoria")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CategoriaDTO>> Get(int id)
     {
         //throw new Exception("Erro ao buscar categoria..."); // Simulando erro para teste do middleware
@@ -122,6 +127,8 @@ public class CategoriasController : ControllerBase
     /// <param name="categoriasParameters">Este parâmetro é usado para definir a paginação e filtragem das categorias.</param>
     /// <returns>Retorna uma lista de objetos CategoriaDTO paginados se encontrados, ou NotFound se não encontrados.</returns>
     [HttpGet("pagination")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> Get([FromQuery] CategoriasParameters categoriasParameters)
     {
         var categorias = await _unitOfWork.CategoriasRepository.GetCategoriasAsync(categoriasParameters);
@@ -141,6 +148,8 @@ public class CategoriasController : ControllerBase
     /// <param name="categoriasFiltroNome">Este parâmetro é usado para definir a filtragem por nome e paginação das categorias.</param>
     /// <returns>Retorna uma lista de objetos CategoriaDTO filtrados por nome e paginados se encontrados, ou NotFound se não encontrados.</returns>
     [HttpGet("filtro/nome/pagination")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> GetCategoriaFiltroNome([FromQuery] CategoriasFiltroNome categoriasFiltroNome)
     {
         var categorias = await _unitOfWork.CategoriasRepository.GetCategoriasFiltroNomeAsync(categoriasFiltroNome);
@@ -170,6 +179,8 @@ public class CategoriasController : ControllerBase
     /// <param name="categoriaDto"></param>
     /// <returns></returns>
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CategoriaDTO>> Post(CategoriaDTO categoriaDto)
     {
 
@@ -221,6 +232,8 @@ public class CategoriasController : ControllerBase
     /// Retorna o objeto CategoriaDTO atualizado se a atualização for bem-sucedida, ou BadRequest se o id não confere com o id do objeto.
     /// </returns>
     [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CategoriaDTO>> Put(int id, CategoriaDTO categoriaDto)
     {
 
@@ -256,6 +269,8 @@ public class CategoriasController : ControllerBase
     /// </returns>
     [Authorize(policy:"AdminOnly")]
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CategoriaDTO>> Delete(int id)
     {
 

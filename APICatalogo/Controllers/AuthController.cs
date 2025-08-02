@@ -8,6 +8,18 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace APICatalogo.Controllers;
+
+/// <summary>
+/// Controlador responsável pela autenticação e autorização de usuários.
+/// </summary>
+/// <remarks>
+/// Este controlador fornece endpoints para:
+/// - Login e geração de tokens JWT
+/// - Registro de novos usuários
+/// - Gerenciamento de refresh tokens
+/// - Criação de roles (papéis)
+/// - Atribuição de roles a usuários
+/// </remarks>
 [Route("[controller]")]
 [ApiController]
 public class AuthController : ControllerBase
@@ -18,6 +30,14 @@ public class AuthController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthController> _logger;
 
+    /// <summary>
+    /// Inicializa uma nova instância do controlador de autenticação.
+    /// </summary>
+    /// <param name="tokenService">Serviço para geração e validação de tokens</param>
+    /// <param name="userManager">Gerenciador de usuários</param>
+    /// <param name="roleManager">Gerenciador de roles (papéis)</param>
+    /// <param name="configuration">Configurações da aplicação</param>
+    /// <param name="logger">Logger para registro de eventos</param>
     public AuthController(ITokenService tokenService, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, 
                            IConfiguration configuration, ILogger<AuthController> logger)
     {

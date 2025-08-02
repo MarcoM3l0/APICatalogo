@@ -14,6 +14,20 @@ using Newtonsoft.Json;
 using System.Runtime.CompilerServices;
 
 namespace APICatalogo.Controllers;
+
+/// <summary>
+/// Controlador responsável por operações CRUD de produtos.
+/// </summary>
+/// <remarks>
+/// Este controlador fornece endpoints para:
+/// - Listar todos os produtos
+/// - Obter produtos paginados
+/// - Filtrar produtos por preço
+/// - Buscar produtos por categoria
+/// - Criar, atualizar e excluir produtos
+/// 
+/// Requer autenticação para algumas operações conforme políticas de segurança definidas.
+/// </remarks>
 [Route("[controller]")]
 [ApiController]
 public class ProdutosController : ControllerBase
@@ -21,6 +35,13 @@ public class ProdutosController : ControllerBase
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ProdutosController> _logger;
     private readonly IMapper _mapper;
+
+    /// <summary>
+    /// Inicializa uma nova instância da classe <see cref="ProdutosController"/>.
+    /// </summary>
+    /// <param name="unitOfWork">Unidade de trabalho para operações com o banco de dados</param>
+    /// <param name="logger">Logger para registro de eventos e monitoramento</param>
+    /// <param name="mapper">Mapeador para conversão entre DTOs e entidades</param>
     public ProdutosController(IUnitOfWork unitOfWork, ILogger<ProdutosController> logger, IMapper mapper)
     {
         _unitOfWork = unitOfWork;

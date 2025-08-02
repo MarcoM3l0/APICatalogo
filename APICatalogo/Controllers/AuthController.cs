@@ -56,6 +56,8 @@ public class AuthController : ControllerBase
     /// <returns>Status 200 (OK) e o token para credenciais válidas.</returns>
     /// <remarks>Retorna o Satatus 200 (OK) com o token.</remarks>
     [HttpPost("login")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginModel model)
     {
         var user = await _userManager.FindByNameAsync(model.Username!);
@@ -105,6 +107,8 @@ public class AuthController : ControllerBase
     /// <param name="model">Um objeto do tipo UsuarioDTO.</param>
     /// <returns>retorna Status 200 (OK) se o usuário for criado com sucesso.</returns>
     [HttpPost("register")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Register([FromBody] RegisterModel model)
     {
         var userExists = await _userManager.FindByNameAsync(model.Username!);
@@ -152,6 +156,8 @@ public class AuthController : ControllerBase
     /// <returns>Retorna Status 200 (OK) com o novo access token e refresh token se o refresh for bem-sucedido.</returns>
     /// <exception cref="ArgumentException">Ele é lançado se o token for nulo ou se o access token ou refresh token estiverem ausentes.</exception>
     [HttpPost("refresh-token")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> RefreshToken([FromBody] TokenModel token)
     {
         if (token is null)
@@ -200,6 +206,8 @@ public class AuthController : ControllerBase
     /// <returns>Retorna Status 204 (No Content) se o refresh token for revogado com sucesso.</returns>
     [Authorize(Policy = "ExclusivePolicyOnly")]
     [HttpPost("revoke/{username}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Revoke(string username)
     {
         var user = await _userManager.FindByNameAsync(username);
@@ -227,6 +235,8 @@ public class AuthController : ControllerBase
     [Authorize(Policy = "SuperAdminOnly")]
     [HttpPost]
     [Route("create-role")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateRole(string roleName)
     {
         var roleExists = await _roleManager.RoleExistsAsync(roleName);
@@ -280,6 +290,8 @@ public class AuthController : ControllerBase
     [Authorize(Policy = "SuperAdminOnly")]
     [HttpPost]
     [Route("AddUserToRole")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AddUserToRole(string userEmail, string roleName)
     {
         var user = await _userManager.FindByEmailAsync(userEmail);

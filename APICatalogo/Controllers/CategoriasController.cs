@@ -12,6 +12,18 @@ using Newtonsoft.Json;
 
 namespace APICatalogo.Controllers;
 
+
+/// <summary>
+/// Controlador responsável por gerenciar operações relacionadas a categorias.
+/// </summary>
+/// <remarks>
+/// Este controlador fornece endpoints para:
+/// - Listar categorias (com paginação e filtros)
+/// - Obter categorias por ID
+/// - Criar novas categorias
+/// - Atualizar categorias existentes
+/// - Excluir categorias
+/// </remarks>
 [EnableCors("CorsPolicy")]
 [EnableRateLimiting("fixedwindow")]
 [Route("[controller]")]
@@ -22,6 +34,13 @@ public class CategoriasController : ControllerBase
     private readonly IUnitOfWork _unitOfWork;
     private readonly IConfiguration _configuration;
     private readonly ILogger<CategoriasController> _logger;
+
+    /// <summary>
+    /// Inicializa uma nova instância da classe <see cref="CategoriasController"/>.
+    /// </summary>
+    /// <param name="unitOfWork">Unidade de trabalho para operações com o banco de dados</param>
+    /// <param name="configuration">Configuração da aplicação</param>
+    /// <param name="logger">Logger para registro de eventos</param>
     public CategoriasController(IUnitOfWork unitOfWork, IConfiguration configuration, ILogger<CategoriasController> logger)
     {
         _unitOfWork = unitOfWork;
@@ -162,10 +181,22 @@ public class CategoriasController : ControllerBase
 
         var categoria = categoriaDto.ToCategoria();
 
+        if (categoria is null)
+        {
+            _logger.LogWarning("Post - Categoria não pôde ser convertida de CategoriaDTO");
+            return BadRequest("Categoria não pôde ser convertida de CategoriaDTO...");
+        }
+
         var categoriaCriada = _unitOfWork.CategoriasRepository.Create(categoria);
         await _unitOfWork.CommitAsync();
 
         var categoriaDtoCriada = categoriaCriada.ToCategoriaDTO();
+
+        if (categoriaDtoCriada is null)
+        {
+            _logger.LogWarning("Post - CategoriaDTO criada é nula");
+            return BadRequest("CategoriaDTO criada é nula...");
+        }
 
         return new CreatedAtRouteResult("ObterCategoria", new { id = categoriaDtoCriada.CategoriaId }, categoriaDtoCriada);
         
@@ -200,6 +231,12 @@ public class CategoriasController : ControllerBase
         }
 
         var categoria = categoriaDto.ToCategoria();
+
+        if(categoria is null)
+        {
+            _logger.LogWarning("Put - Categoria é nula");
+            return BadRequest("Categoria é nula...");
+        }
 
         _unitOfWork.CategoriasRepository.Update(categoria);
         await _unitOfWork.CommitAsync();

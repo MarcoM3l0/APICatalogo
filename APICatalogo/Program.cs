@@ -146,7 +146,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
-string mysqlConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+string mysqlConnection = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new ArgumentNullException("Conexão MySQL inválida!");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(mysqlConnection,

@@ -7,9 +7,15 @@ using System.Text;
 
 namespace APICatalogo.Services;
 
+/// <summary>
+/// Implementação concreta do serviço de geração e validação de tokens JWT
+/// </summary>
 public class TokenService : ITokenService
 {
-    public JwtSecurityToken GenerateAcesseToken(IEnumerable<Claim> claims, IConfiguration _configuration)
+    /// <summary>
+    /// Gera um token de acesso JWT
+    /// </summary>
+    public JwtSecurityToken GenerateAccessToken(IEnumerable<Claim> claims, IConfiguration _configuration)
     {
         var kay = _configuration.GetSection("JWT").GetValue<string>("SecretKey") ?? throw new InvalidOperationException("Chave secreta inválida.");
         
@@ -34,6 +40,9 @@ public class TokenService : ITokenService
         return token;
     }
 
+    /// <summary>
+    /// Gera um token de refresh criptograficamente seguro
+    /// </summary>
     public string GenerateRefreshToken()
     {
         var secureRandomBytes = new byte[128];
@@ -44,6 +53,9 @@ public class TokenService : ITokenService
         return Convert.ToBase64String(secureRandomBytes);
     }
 
+    /// <summary>
+    /// Valida e extrai o principal de um token expirado
+    /// </summary>
     public ClaimsPrincipal GetPrincipalFromExpiredToken(string token, IConfiguration _configuration)
     {
         var secretKey = _configuration["JWT:SecretKey"] ?? throw new InvalidOperationException("Chave inválida.");

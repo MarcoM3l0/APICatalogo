@@ -1,22 +1,46 @@
 ﻿using APICatalogo.context;
 using APICatalogo.Models;
 using APICatalogo.Pagination;
-using Microsoft.EntityFrameworkCore;
 
 namespace APICatalogo.Repositories;
 
+/// <summary>
+/// Implementação concreta do repositório para a entidade Produto
+/// </summary>
+/// <remarks>
+/// Responsável por operações de dados específicas para produtos,
+/// incluindo paginação, filtros por preço e busca por categoria.
+/// </remarks>
 public class ProdutoRepository : Repository<Produto>, IProdutoRepository
 {
+    /// <summary>
+    /// Inicializa uma nova instância do repositório de produtos
+    /// </summary>
+    /// <param name="context">Contexto do banco de dados</param>
     public ProdutoRepository(AppDbContext context) : base(context)
     {
     }
 
+    /// <summary>
+    /// Obtém todos os produtos de uma categoria específica
+    /// </summary>
+    /// <param name="id">ID da categoria</param>
+    /// <returns>
+    /// Task contendo IEnumerable de Produtos pertencentes à categoria especificada
+    /// </returns>
     public async Task<IEnumerable<Produto>> GetProdutoPorCategoriaAsync(int id)
     {
         var produto = await GetAllAsync();
         return produto.Where(c => c.CategoriaId == id);
     }
 
+    /// <summary>
+    /// Obtém uma lista paginada de produtos ordenados por ID
+    /// </summary>
+    /// <param name="produtosParameters">Parâmetros de paginação</param>
+    /// <returns>
+    /// Task contendo PagedList de Produtos com metadados de paginação
+    /// </returns>
     public async Task<PagedList<Produto>> GetProdutosAsync(ProdutosParameters produtosParameters)
     {
         var produtos = await GetAllAsync();
@@ -27,6 +51,13 @@ public class ProdutoRepository : Repository<Produto>, IProdutoRepository
         return resultado;
     }
 
+    /// <summary>
+    /// Obtém produtos filtrados por preço com paginação
+    /// </summary>
+    /// <param name="produtosFiltroParams">Parâmetros de filtro por preço e paginação</param>
+    /// <returns>
+    /// Task contendo PagedList de Produtos que atendem aos critérios de preço
+    /// </returns>
     public async Task<PagedList<Produto>> GetProdutosFiltroPrecoAsync(ProdutosFiltroPreco produtosFiltroParams)
     {
         var produtos = await GetAllAsync();

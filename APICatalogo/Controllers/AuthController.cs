@@ -22,6 +22,7 @@ namespace APICatalogo.Controllers;
 /// </remarks>
 [Route("[controller]")]
 [ApiController]
+[Produces("application/json")]
 public class AuthController : ControllerBase
 {
     private readonly ITokenService _tokenService;

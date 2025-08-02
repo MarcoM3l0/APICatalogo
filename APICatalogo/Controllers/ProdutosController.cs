@@ -30,6 +30,7 @@ namespace APICatalogo.Controllers;
 /// </remarks>
 [Route("[controller]")]
 [ApiController]
+[Produces("application/json")]
 public class ProdutosController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;

@@ -28,6 +28,7 @@ namespace APICatalogo.Controllers;
 [EnableRateLimiting("fixedwindow")]
 [Route("[controller]")]
 [ApiController]
+[Produces("application/json")]
 public class CategoriasController : ControllerBase
 {
 

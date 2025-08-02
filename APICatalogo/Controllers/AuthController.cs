@@ -76,7 +76,7 @@ public class AuthController : ControllerBase
                 authClaims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var token = _tokenService.GenerateAcesseToken(authClaims, _configuration);
+            var token = _tokenService.GenerateAccessToken(authClaims, _configuration);
 
             var refreshToken = _tokenService.GenerateRefreshToken();
 
@@ -177,7 +177,7 @@ public class AuthController : ControllerBase
             return BadRequest("Token inválido ou expirado!");
         } 
 
-        var newAccessToken = _tokenService.GenerateAcesseToken(principal.Claims, _configuration);
+        var newAccessToken = _tokenService.GenerateAccessToken(principal.Claims, _configuration);
         var newRefreshToken = _tokenService.GenerateRefreshToken();
 
         user.RefreshToken = newRefreshToken;

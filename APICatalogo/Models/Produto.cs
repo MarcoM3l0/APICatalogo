@@ -78,7 +78,7 @@ public class Produto
 
     /// <summary>
     /// Identificador da categoria do produto (chave estrangeira)
-    /// </summary
+    /// </summary>
     public int CategoriaId { get; set; }
 
     /// <summary>

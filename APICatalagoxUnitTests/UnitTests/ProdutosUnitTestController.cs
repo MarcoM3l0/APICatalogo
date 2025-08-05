@@ -33,5 +33,6 @@ internal class ProdutosUnitTestController
         mapper = config.CreateMapper();
         var context = new AppDbContext(dbContextOptions);
         repository = new UnitOfWork(context);
+        logger = new Logger<ProdutosController>(new LoggerFactory());
     }
 }

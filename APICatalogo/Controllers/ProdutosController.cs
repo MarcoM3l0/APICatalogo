@@ -169,7 +169,7 @@ public class ProdutosController : ControllerBase
     {
         var produtos = await _unitOfWork.ProdutosRepository.GetProdutoPorCategoriaAsync(id);
 
-        if (produtos is null)
+        if (produtos is null || !produtos.Any())
         {
             _logger.LogWarning($"Get - Produtos com categoria id={id} não encontrados");
             return NotFound($"Produtos com categoria id={id} não encontrados...");

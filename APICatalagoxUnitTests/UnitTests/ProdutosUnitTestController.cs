@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace APICatalagoxUnitTests.UnitTests;
-internal class ProdutosUnitTestController
+public class ProdutosUnitTestController
 {
     public IUnitOfWork repository;
     public IMapper mapper;

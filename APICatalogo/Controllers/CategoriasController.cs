@@ -38,7 +38,7 @@ public class CategoriasController : ControllerBase
     private readonly ILogger<CategoriasController> _logger;
 
     private readonly IMemoryCache _cache;
-    private const string CacheKey = "CategoriasCache";
+    private const string CacheCategoriasKey = "CategoriasCache";
 
     /// <summary>
     /// Inicializa uma nova instância da classe <see cref="CategoriasController"/>.
@@ -85,7 +85,7 @@ public class CategoriasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> Get()
     {
-        if(!_cache.TryGetValue(CacheKey, out IEnumerable<Categoria>? categorias))
+        if(!_cache.TryGetValue(CacheCategoriasKey, out IEnumerable<Categoria>? categorias))
         {
             categorias = await _unitOfWork.CategoriasRepository.GetAllAsync();
 
@@ -97,7 +97,7 @@ public class CategoriasController : ControllerBase
                     SlidingExpiration = TimeSpan.FromSeconds(30), 
                     Priority = CacheItemPriority.High 
                 };
-                _cache.Set(CacheKey, categorias, cacheOptions);
+                _cache.Set(CacheCategoriasKey, categorias, cacheOptions);
             }
             else 
             { 
@@ -241,6 +241,19 @@ public class CategoriasController : ControllerBase
             _logger.LogWarning("Post - CategoriaDTO criada é nula");
             return BadRequest("CategoriaDTO criada é nula...");
         }
+
+        _cache.Remove(CacheCategoriasKey);
+
+        var cacheCategoriaIdKey = $"CategoriasCache_{categoriaDtoCriada.CategoriaId}";
+
+        var cacheOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30),
+            SlidingExpiration = TimeSpan.FromSeconds(15),
+            Priority = CacheItemPriority.High
+        };
+
+        _cache.Set(cacheCategoriaIdKey, categoriaDtoCriada, cacheOptions);
 
         return new CreatedAtRouteResult("ObterCategoria", new { id = categoriaDtoCriada.CategoriaId }, categoriaDtoCriada);
         

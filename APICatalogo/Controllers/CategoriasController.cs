@@ -135,8 +135,8 @@ public class CategoriasController : ControllerBase
             {
                 var cacheOptions = new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
-                    SlidingExpiration = TimeSpan.FromSeconds(30),
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30),
+                    SlidingExpiration = TimeSpan.FromSeconds(15),
                     Priority = CacheItemPriority.High
                 };
                 _cache.Set(cacheCategoriaIdKey, categoria, cacheOptions);

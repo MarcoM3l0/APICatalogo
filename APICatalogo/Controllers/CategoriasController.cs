@@ -125,16 +125,30 @@ public class CategoriasController : ControllerBase
         //throw new Exception("Erro ao buscar categoria..."); // Simulando erro para teste do middleware
         //throw new ArgumentException("Ocorreu um erro no tratamento de request"); // Simulando erro para teste
 
+        var cacheCategoriaIdKey = $"CategoriasCache_{id}";
 
-        var categoria = await _unitOfWork.CategoriasRepository.GetAsync(c => c.CategoriaId == id);
-
-        if (categoria is null)
+        if(!_cache.TryGetValue(cacheCategoriaIdKey, out Categoria? categoria))
         {
-            _logger.LogWarning($"Get - Categoria com id={id} não encontrada");
-            return NotFound($"Categoria com id={id} não encontrada...");
+            categoria = await _unitOfWork.CategoriasRepository.GetAsync(c => c.CategoriaId == id);
+
+            if (categoria is not null)
+            {
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                    SlidingExpiration = TimeSpan.FromSeconds(30),
+                    Priority = CacheItemPriority.High
+                };
+                _cache.Set(cacheCategoriaIdKey, categoria, cacheOptions);
+            }
+            else
+            {
+                _logger.LogWarning("Get - Categorias não encontradas...");
+                return NotFound("Categorias não encontradas...");
+            }
         }
 
-        var categoriaDto = categoria.ToCategoriaDTO();
+        var categoriaDto = categoria?.ToCategoriaDTO();
 
         return Ok(categoriaDto);
 

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 
 namespace APICatalogo.Controllers;
@@ -36,17 +37,22 @@ public class CategoriasController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly ILogger<CategoriasController> _logger;
 
+    private readonly IMemoryCache _cache;
+    private const string CacheKey = "CategoriasCache";
+
     /// <summary>
     /// Inicializa uma nova instância da classe <see cref="CategoriasController"/>.
     /// </summary>
     /// <param name="unitOfWork">Unidade de trabalho para operações com o banco de dados</param>
     /// <param name="configuration">Configuração da aplicação</param>
     /// <param name="logger">Logger para registro de eventos</param>
-    public CategoriasController(IUnitOfWork unitOfWork, IConfiguration configuration, ILogger<CategoriasController> logger)
+    /// <param name="cache">Cache em memória para otimização de desempenho</param>
+    public CategoriasController(IUnitOfWork unitOfWork, IConfiguration configuration, ILogger<CategoriasController> logger, IMemoryCache cache)
     {
         _unitOfWork = unitOfWork;
         _configuration = configuration;
         _logger = logger;
+        _cache = cache;
     }
     private ActionResult<IEnumerable<CategoriaDTO>> ObterCategorias(PagedList<Categoria> categorias)
     {
@@ -79,15 +85,28 @@ public class CategoriasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> Get()
     {
-        var categorias = await _unitOfWork.CategoriasRepository.GetAllAsync();
-
-        if (categorias is null)
+        if(!_cache.TryGetValue(CacheKey, out IEnumerable<Categoria>? categorias))
         {
-            _logger.LogWarning("Get - Categorias não encontradas...");
-            return NotFound("Categorias não encontradas...");
+            categorias = await _unitOfWork.CategoriasRepository.GetAllAsync();
+
+            if (categorias is not null && categorias.Any())
+            { 
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1), 
+                    SlidingExpiration = TimeSpan.FromSeconds(30), 
+                    Priority = CacheItemPriority.High 
+                };
+                _cache.Set(CacheKey, categorias, cacheOptions);
+            }
+            else 
+            { 
+                _logger.LogWarning("Get - Categorias não encontradas...");
+                return NotFound("Categorias não encontradas...");
+            }
         }
 
-        var categoriasDto = categorias.ToCategoriaDtoList();
+        var categoriasDto = categorias?.ToCategoriaDtoList();
 
         return Ok(categoriasDto);
     }

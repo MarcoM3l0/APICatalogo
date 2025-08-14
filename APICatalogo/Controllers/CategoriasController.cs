@@ -302,6 +302,15 @@ public class CategoriasController : ControllerBase
 
         var categoriaDtoAtualizada = categoria.ToCategoriaDTO();
 
+        _cache.Set($"CategoriasCache_{id}", categoriaDtoAtualizada, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30),
+            SlidingExpiration = TimeSpan.FromSeconds(15),
+            Priority = CacheItemPriority.High
+        });
+
+        _cache.Remove(CacheCategoriasKey);
+
         return Ok(categoriaDtoAtualizada);
         
     }

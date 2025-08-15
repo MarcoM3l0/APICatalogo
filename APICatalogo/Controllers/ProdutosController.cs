@@ -6,6 +6,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 
 namespace APICatalogo.Controllers;
@@ -32,17 +33,22 @@ public class ProdutosController : ControllerBase
     private readonly ILogger<ProdutosController> _logger;
     private readonly IMapper _mapper;
 
+    private readonly IMemoryCache _cache;
+    private const string CacheProdutosKey = "ProdutosCache";
+
     /// <summary>
     /// Inicializa uma nova instância da classe <see cref="ProdutosController"/>.
     /// </summary>
     /// <param name="unitOfWork">Unidade de trabalho para operações com o banco de dados</param>
     /// <param name="logger">Logger para registro de eventos e monitoramento</param>
     /// <param name="mapper">Mapeador para conversão entre DTOs e entidades</param>
-    public ProdutosController(IUnitOfWork unitOfWork, ILogger<ProdutosController> logger, IMapper mapper)
+    /// <param name="cache">Cache para armazenamento em memória</param>
+    public ProdutosController(IUnitOfWork unitOfWork, ILogger<ProdutosController> logger, IMapper mapper, IMemoryCache cache)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
         _mapper = mapper;
+        _cache = cache;
     }
 
     private ActionResult<IEnumerable<ProdutoDTO>> ObterProdutos(PagedList<Produto> produtos)
@@ -74,18 +80,73 @@ public class ProdutosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get()
     {
-
-        var produtos = await _unitOfWork.ProdutosRepository.GetAllAsync();
-
-        if (produtos is null)
+        if(!_cache.TryGetValue(CacheProdutosKey, out IEnumerable<Produto>? produtos))
         {
-            _logger.LogWarning("get - Produtos não encontrados");
-            return NotFound("Produtos não encontrados...");
+            produtos = await _unitOfWork.ProdutosRepository.GetAllAsync();
+
+            if(produtos is not null && produtos.Any())
+            {
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                    SlidingExpiration = TimeSpan.FromSeconds(30),
+                    Priority  = CacheItemPriority.High
+                };
+
+                _cache.Set(CacheProdutosKey, produtos, cacheOptions);
+            }
+            else
+            {
+                _logger.LogWarning("get - Produtos não encontrados");
+                return NotFound("Produtos não encontrados...");
+            }
+
         }
 
         var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
 
         return Ok(produtosDto);
+
+    }
+
+
+    /// <summary>
+    /// Obtém um produto pelo id
+    /// </summary>
+    /// <param name="id">Parametro id e o identificador único do produto que será consultado.</param>
+    /// <returns>Um objeto Produto se encontrado, ou NotFound se não encontrado.</returns>
+    [HttpGet("{id:int}", Name = "ObterProduto")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProdutoDTO>> Get(int id)
+    {
+        string cacheProdutoIdKey = $"ProdutoCache_{id}";
+
+        if(!_cache.TryGetValue(cacheProdutoIdKey, out Produto? produto))
+        {
+            produto = await _unitOfWork.ProdutosRepository.GetAsync(p => p.ProdutoId == id);
+            
+            if(produto is not null)
+            {
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                    SlidingExpiration = TimeSpan.FromSeconds(30),
+                    Priority  = CacheItemPriority.High
+                };
+                _cache.Set(cacheProdutoIdKey, produto, cacheOptions);
+            }
+            else
+            {
+                _logger.LogWarning($"get - Produto com id={id} não encontrado");
+                return NotFound($"Produto com id={id} não encontrado...");
+            }
+            
+        }
+
+        var produtoDto = _mapper.Map<ProdutoDTO>(produto);
+
+        return Ok(produtoDto);
 
     }
 
@@ -99,13 +160,27 @@ public class ProdutosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get([FromQuery] ProdutosParameters produtosParameters)
     {
+        string cacheParametersKey = $"ProdutosCache_{produtosParameters.PageNumber}_{produtosParameters.PageSize}";
 
-        var produtos = await _unitOfWork.ProdutosRepository.GetProdutosAsync(produtosParameters);
-
-        if (produtos is null || !produtos.Any())
+        if (!_cache.TryGetValue(cacheParametersKey, out PagedList<Produto>? produtos))
         {
-            _logger.LogWarning("get - Produtos não encontrados com paginação");
-            return NotFound("Produtos não encontrados...");
+            produtos = await _unitOfWork.ProdutosRepository.GetProdutosAsync(produtosParameters);
+            if (produtos is not null && produtos.Any())
+            {
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                    SlidingExpiration = TimeSpan.FromSeconds(30),
+                    Priority = CacheItemPriority.High
+                };
+
+                _cache.Set(cacheParametersKey, produtos, cacheOptions);
+            }
+            else
+            {
+                _logger.LogWarning("get - Produtos não encontrados com paginação");
+                return NotFound("Produtos não encontrados...");
+            }
         }
 
         return ObterProdutos(produtos);
@@ -121,40 +196,30 @@ public class ProdutosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> GetProdutosPorPreco([FromQuery] ProdutosFiltroPreco produtosFiltroParameters)
     {
-        var produtos = await _unitOfWork.ProdutosRepository.GetProdutosFiltroPrecoAsync(produtosFiltroParameters);
-
-        if (produtos is null || !produtos.Any())
+        string cacheFiltroPrecoKey = $"ProdutosFiltroPrecoCache_{produtosFiltroParameters.PageNumber}_{produtosFiltroParameters.PageSize}";
+        
+        if (!_cache.TryGetValue(cacheFiltroPrecoKey, out PagedList<Produto>? produtos))
         {
-            _logger.LogWarning("get - Produtos não encontrados com filtro de preço");
-            return NotFound("Produtos não encontrados...");
+            produtos = await _unitOfWork.ProdutosRepository.GetProdutosFiltroPrecoAsync(produtosFiltroParameters);
+            if (produtos is not null && produtos.Any())
+            {
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                    SlidingExpiration = TimeSpan.FromSeconds(30),
+                    Priority = CacheItemPriority.High
+                };
+                
+                _cache.Set(cacheFiltroPrecoKey, produtos, cacheOptions);
+            }
+            else
+            {
+                _logger.LogWarning("get - Produtos não encontrados com filtro de preço");
+                return NotFound("Produtos não encontrados...");
+            }
         }
 
         return ObterProdutos(produtos);
-    }
-
-    /// <summary>
-    /// Obtém um produto pelo id
-    /// </summary>
-    /// <param name="id">Parametro id e o identificador único do produto que será consultado.</param>
-    /// <returns>Um objeto Produto se encontrado, ou NotFound se não encontrado.</returns>
-    [HttpGet("{id:int}", Name = "ObterProduto")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ProdutoDTO>> Get(int id)
-    {
-
-        var produto = await _unitOfWork.ProdutosRepository.GetAsync(p => p.ProdutoId == id);
-
-        if (produto is null)
-        {
-            _logger.LogWarning($"Get - Produto com id={id} não encontrado");
-            return NotFound($"Produto com id={id} não encontrado...");
-        }
-
-        var produtoDto = _mapper.Map<ProdutoDTO>(produto);
-
-        return Ok(produtoDto);
-       
     }
 
     /// <summary>
@@ -167,12 +232,27 @@ public class ProdutosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> GetProdutosPorCategoria(int id)
     {
-        var produtos = await _unitOfWork.ProdutosRepository.GetProdutoPorCategoriaAsync(id);
-
-        if (produtos is null || !produtos.Any())
+        string cacheProdutosPorCategoriaKey = $"ProdutosPorCategoriaCache_{id}";
+        if (!_cache.TryGetValue(cacheProdutosPorCategoriaKey, out IEnumerable<Produto>? produtos))
         {
-            _logger.LogWarning($"Get - Produtos com categoria id={id} não encontrados");
-            return NotFound($"Produtos com categoria id={id} não encontrados...");
+            produtos = await _unitOfWork.ProdutosRepository.GetProdutoPorCategoriaAsync(id);
+
+            if (produtos is not null && produtos.Any())
+            {
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                    SlidingExpiration = TimeSpan.FromSeconds(30),
+                    Priority = CacheItemPriority.High
+                };
+                _cache.Set(cacheProdutosPorCategoriaKey, produtos, cacheOptions);
+            }
+            else
+            {
+                _logger.LogWarning($"Get - Produtos com categoria id={id} não encontrados");
+                return NotFound($"Produtos com categoria id={id} não encontrados...");
+            }
+            
         }
 
         var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
@@ -214,6 +294,19 @@ public class ProdutosController : ControllerBase
         await _unitOfWork.CommitAsync();
 
         var produtoCriadoDto = _mapper.Map<ProdutoDTO>(produtoCriado);
+
+        _cache.Remove(CacheProdutosKey);
+
+        var cacheProdutoIdKey = $"ProdutosCache_{produtoCriado.ProdutoId}";
+
+        var cacheOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+            SlidingExpiration = TimeSpan.FromSeconds(30),
+            Priority = CacheItemPriority.High
+        };
+
+        _cache.Set(cacheProdutoIdKey, produtoCriado, cacheOptions);
 
         return new CreatedAtRouteResult("ObterProduto", new { id = produtoCriado.ProdutoId }, produtoCriado);
         
@@ -274,6 +367,15 @@ public class ProdutosController : ControllerBase
         _unitOfWork.ProdutosRepository.Update(produto);
         await _unitOfWork.CommitAsync();
 
+        _cache.Set($"ProdutosCache_{id}", produto, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+            SlidingExpiration = TimeSpan.FromSeconds(30),
+            Priority = CacheItemPriority.High
+        });
+
+        _cache.Remove(CacheProdutosKey);
+
         return Ok(_mapper.Map<ProdutoDTOUpdateResponse>(produto));
     }
 
@@ -319,6 +421,15 @@ public class ProdutosController : ControllerBase
 
         var produtoAtualizadoDto = _mapper.Map<ProdutoDTO>(produtoAtualizado);
 
+        _cache.Set($"ProdutosCache_{id}", produtoAtualizadoDto, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+            SlidingExpiration = TimeSpan.FromSeconds(30),
+            Priority = CacheItemPriority.High
+        });
+
+        _cache.Remove(CacheProdutosKey);
+
         return Ok(produtoAtualizadoDto);
     }
 
@@ -344,6 +455,9 @@ public class ProdutosController : ControllerBase
         await _unitOfWork.CommitAsync();
 
         var produtoRemovidoDto = _mapper.Map<ProdutoDTO>(produtoRemovido);
+
+        _cache.Remove($"ProdutosCache_{id}");
+        _cache.Remove(CacheProdutosKey);
 
         return Ok(produtoRemovidoDto);
 

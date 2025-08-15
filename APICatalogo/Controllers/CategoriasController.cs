@@ -90,21 +90,13 @@ public class CategoriasController : ControllerBase
         {
             categorias = await _unitOfWork.CategoriasRepository.GetAllAsync();
 
-            if (categorias is not null && categorias.Any())
-            { 
-                var cacheOptions = new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1), 
-                    SlidingExpiration = TimeSpan.FromSeconds(30), 
-                    Priority = CacheItemPriority.High 
-                };
-                _cache.Set(CacheCategoriasKey, categorias, cacheOptions);
-            }
-            else 
-            { 
+            if (categorias is null || !categorias.Any())
+            {
                 _logger.LogWarning("Get - Categorias não encontradas...");
                 return NotFound("Categorias não encontradas...");
             }
+            
+            SetCache(CacheCategoriasKey, categorias);
         }
 
         var categoriasDto = categorias?.ToCategoriaDtoList();
@@ -126,27 +118,19 @@ public class CategoriasController : ControllerBase
         //throw new Exception("Erro ao buscar categoria..."); // Simulando erro para teste do middleware
         //throw new ArgumentException("Ocorreu um erro no tratamento de request"); // Simulando erro para teste
 
-        var cacheCategoriaIdKey = $"CategoriasCache_{id}";
+        var cacheKey = GetCacheCategoriasKey(id);
 
-        if(!_cache.TryGetValue(cacheCategoriaIdKey, out Categoria? categoria))
+        if(!_cache.TryGetValue(cacheKey, out Categoria? categoria))
         {
             categoria = await _unitOfWork.CategoriasRepository.GetAsync(c => c.CategoriaId == id);
 
-            if (categoria is not null)
-            {
-                var cacheOptions = new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30),
-                    SlidingExpiration = TimeSpan.FromSeconds(15),
-                    Priority = CacheItemPriority.High
-                };
-                _cache.Set(cacheCategoriaIdKey, categoria, cacheOptions);
-            }
-            else
+            if (categoria is  null)
             {
                 _logger.LogWarning("Get - Categorias não encontradas...");
                 return NotFound("Categorias não encontradas...");
             }
+
+            SetCache(cacheKey, categoria);
         }
 
         var categoriaDto = categoria?.ToCategoriaDTO();
@@ -165,27 +149,18 @@ public class CategoriasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> Get([FromQuery] CategoriasParameters categoriasParameters)
     {
+        string cacheKey = GetCacheCategoriasKey(categoriasParameters);
 
-        string cacheParametersKey = $"{CacheCategoriasKey}_{categoriasParameters.PageNumber}_{categoriasParameters.PageSize}";
-
-        if (!_cache.TryGetValue(cacheParametersKey, out PagedList<Categoria>? categorias))
+        if (!_cache.TryGetValue(cacheKey, out PagedList<Categoria>? categorias))
         {
             categorias = await _unitOfWork.CategoriasRepository.GetCategoriasAsync(categoriasParameters);
-            if (categorias is not null && categorias.Any())
-            {
-                var cacheOptions = new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
-                    SlidingExpiration = TimeSpan.FromSeconds(30),
-                    Priority = CacheItemPriority.High
-                };
-                _cache.Set(cacheParametersKey, categorias, cacheOptions);
-            }
-            else
+            if (categorias is null || !categorias.Any())
             {
                 _logger.LogWarning("Get - Categorias não encontradas...");
                 return NotFound("Categorias não encontradas...");
             }
+
+            SetCache(cacheKey, categorias);
         }
 
         return ObterCategorias(categorias);
@@ -201,26 +176,18 @@ public class CategoriasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> GetCategoriaFiltroNome([FromQuery] CategoriasFiltroNome categoriasFiltroNome)
     {
-        string cacheFiltroNomeKey = $"{CacheCategoriasKey}_FiltroNome_{categoriasFiltroNome.Nome}_{categoriasFiltroNome.PageNumber}_{categoriasFiltroNome.PageSize}";
+        string cacheKey = GetCacheCategoriasKey(categoriasFiltroNome);
 
-        if (!_cache.TryGetValue(cacheFiltroNomeKey, out PagedList<Categoria>? categorias))
+        if (!_cache.TryGetValue(cacheKey, out PagedList<Categoria>? categorias))
         {
             categorias = await _unitOfWork.CategoriasRepository.GetCategoriasFiltroNomeAsync(categoriasFiltroNome);
-            if (categorias is not null && categorias.Any())
-            {
-                var cacheOptions = new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
-                    SlidingExpiration = TimeSpan.FromSeconds(30),
-                    Priority = CacheItemPriority.High
-                };
-                _cache.Set(cacheFiltroNomeKey, categorias, cacheOptions);
-            }
-            else
+            if (categorias is null || !categorias.Any())
             {
                 _logger.LogWarning("GetCategoriaFiltroNome - Categorias não encontradas com filtro de nome");
                 return NotFound("Categorias não encontradas...");
             }
+
+            SetCache(cacheKey, categorias);
         }
 
         return ObterCategorias(categorias);
@@ -272,18 +239,7 @@ public class CategoriasController : ControllerBase
             return BadRequest("CategoriaDTO criada é nula...");
         }
 
-        _cache.Remove(CacheCategoriasKey);
-
-        var cacheCategoriaIdKey = $"CategoriasCache_{categoriaDtoCriada.CategoriaId}";
-
-        var cacheOptions = new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30),
-            SlidingExpiration = TimeSpan.FromSeconds(15),
-            Priority = CacheItemPriority.High
-        };
-
-        _cache.Set(cacheCategoriaIdKey, categoriaDtoCriada, cacheOptions);
+        InvalidateCacheAfterChange(categoriaDtoCriada.CategoriaId, categoriaCriada);
 
         return new CreatedAtRouteResult("ObterCategoria", new { id = categoriaDtoCriada.CategoriaId }, categoriaDtoCriada);
         
@@ -332,14 +288,7 @@ public class CategoriasController : ControllerBase
 
         var categoriaDtoAtualizada = categoria.ToCategoriaDTO();
 
-        _cache.Set($"CategoriasCache_{id}", categoriaDtoAtualizada, new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30),
-            SlidingExpiration = TimeSpan.FromSeconds(15),
-            Priority = CacheItemPriority.High
-        });
-
-        _cache.Remove(CacheCategoriasKey);
+        InvalidateCacheAfterChange(id, categoria);
 
         return Ok(categoriaDtoAtualizada);
         
@@ -372,9 +321,35 @@ public class CategoriasController : ControllerBase
 
         var categoriaDtoExcluida = categoriaExcluida.ToCategoriaDTO();
 
-        _cache.Remove($"CategoriasCache_{id}");
-        _cache.Remove(CacheCategoriasKey);
+        InvalidateCacheAfterChange(id);
 
         return Ok(categoriaDtoExcluida);
     }
+
+    private static string GetCacheCategoriasKey(int id) => $"CategoriasCache_{id}";
+    private static string GetCacheCategoriasKey(CategoriasParameters categoriasParameters) => $"CategoriasCache_{categoriasParameters.PageNumber}_{categoriasParameters.PageSize}";
+    private static string GetCacheCategoriasKey(CategoriasFiltroNome categoriasFiltroNome) => $"CategoriasCache_FiltroNome_{categoriasFiltroNome.Nome}_{categoriasFiltroNome.PageNumber}_{categoriasFiltroNome.PageSize}";
+
+    private void SetCache<T>(string key, T data)
+    {
+        var cacheOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+            SlidingExpiration = TimeSpan.FromSeconds(30),
+            Priority = CacheItemPriority.High
+        };
+        _cache.Set(key, data, cacheOptions);
+    }
+
+    private void InvalidateCacheAfterChange(int id, Categoria? categoria = null)
+    {
+        _cache.Remove(CacheCategoriasKey);
+        _cache.Remove(GetCacheCategoriasKey(id));
+
+        if (categoria is not null)
+        {
+            SetCache(GetCacheCategoriasKey(id), categoria);
+        }
+    }
+
 }

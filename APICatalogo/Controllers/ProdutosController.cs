@@ -84,23 +84,13 @@ public class ProdutosController : ControllerBase
         {
             produtos = await _unitOfWork.ProdutosRepository.GetAllAsync();
 
-            if(produtos is not null && produtos.Any())
-            {
-                var cacheOptions = new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
-                    SlidingExpiration = TimeSpan.FromSeconds(30),
-                    Priority  = CacheItemPriority.High
-                };
-
-                _cache.Set(CacheProdutosKey, produtos, cacheOptions);
-            }
-            else
+            if(produtos is null || !produtos.Any())
             {
                 _logger.LogWarning("get - Produtos não encontrados");
                 return NotFound("Produtos não encontrados...");
             }
 
+            SetCache(CacheProdutosKey, produtos);
         }
 
         var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
@@ -120,28 +110,19 @@ public class ProdutosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProdutoDTO>> Get(int id)
     {
-        string cacheProdutoIdKey = $"ProdutoCache_{id}";
+        string cacheKey = GetCacheProdutosKey(id);
 
-        if(!_cache.TryGetValue(cacheProdutoIdKey, out Produto? produto))
+        if(!_cache.TryGetValue(cacheKey, out Produto? produto))
         {
             produto = await _unitOfWork.ProdutosRepository.GetAsync(p => p.ProdutoId == id);
             
-            if(produto is not null)
-            {
-                var cacheOptions = new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
-                    SlidingExpiration = TimeSpan.FromSeconds(30),
-                    Priority  = CacheItemPriority.High
-                };
-                _cache.Set(cacheProdutoIdKey, produto, cacheOptions);
-            }
-            else
+            if(produto is null)
             {
                 _logger.LogWarning($"get - Produto com id={id} não encontrado");
                 return NotFound($"Produto com id={id} não encontrado...");
             }
             
+            SetCache(cacheKey, produto);
         }
 
         var produtoDto = _mapper.Map<ProdutoDTO>(produto);
@@ -160,27 +141,18 @@ public class ProdutosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> Get([FromQuery] ProdutosParameters produtosParameters)
     {
-        string cacheParametersKey = $"ProdutosCache_{produtosParameters.PageNumber}_{produtosParameters.PageSize}";
+        string cacheKey = GetCacheProdutosKey(produtosParameters);
 
-        if (!_cache.TryGetValue(cacheParametersKey, out PagedList<Produto>? produtos))
+        if (!_cache.TryGetValue(cacheKey, out PagedList<Produto>? produtos))
         {
             produtos = await _unitOfWork.ProdutosRepository.GetProdutosAsync(produtosParameters);
-            if (produtos is not null && produtos.Any())
-            {
-                var cacheOptions = new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
-                    SlidingExpiration = TimeSpan.FromSeconds(30),
-                    Priority = CacheItemPriority.High
-                };
-
-                _cache.Set(cacheParametersKey, produtos, cacheOptions);
-            }
-            else
+            if (produtos is null || !produtos.Any())
             {
                 _logger.LogWarning("get - Produtos não encontrados com paginação");
                 return NotFound("Produtos não encontrados...");
             }
+
+            SetCache(cacheKey, produtos);
         }
 
         return ObterProdutos(produtos);
@@ -196,27 +168,18 @@ public class ProdutosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> GetProdutosPorPreco([FromQuery] ProdutosFiltroPreco produtosFiltroParameters)
     {
-        string cacheFiltroPrecoKey = $"ProdutosFiltroPrecoCache_{produtosFiltroParameters.PageNumber}_{produtosFiltroParameters.PageSize}";
-        
-        if (!_cache.TryGetValue(cacheFiltroPrecoKey, out PagedList<Produto>? produtos))
+        string cacheKey = GetCacheProdutosKey(produtosFiltroParameters);
+
+        if (!_cache.TryGetValue(cacheKey, out PagedList<Produto>? produtos))
         {
             produtos = await _unitOfWork.ProdutosRepository.GetProdutosFiltroPrecoAsync(produtosFiltroParameters);
-            if (produtos is not null && produtos.Any())
-            {
-                var cacheOptions = new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
-                    SlidingExpiration = TimeSpan.FromSeconds(30),
-                    Priority = CacheItemPriority.High
-                };
-                
-                _cache.Set(cacheFiltroPrecoKey, produtos, cacheOptions);
-            }
-            else
+            if (produtos is null || !produtos.Any())
             {
                 _logger.LogWarning("get - Produtos não encontrados com filtro de preço");
                 return NotFound("Produtos não encontrados...");
             }
+
+            SetCache(cacheKey, produtos);
         }
 
         return ObterProdutos(produtos);
@@ -232,27 +195,19 @@ public class ProdutosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> GetProdutosPorCategoria(int id)
     {
-        string cacheProdutosPorCategoriaKey = $"ProdutosPorCategoriaCache_{id}";
-        if (!_cache.TryGetValue(cacheProdutosPorCategoriaKey, out IEnumerable<Produto>? produtos))
+        string cacheKey = GetCacheProdutosCategoriaKey(id);
+
+        if (!_cache.TryGetValue(cacheKey, out IEnumerable<Produto>? produtos))
         {
             produtos = await _unitOfWork.ProdutosRepository.GetProdutoPorCategoriaAsync(id);
 
-            if (produtos is not null && produtos.Any())
-            {
-                var cacheOptions = new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
-                    SlidingExpiration = TimeSpan.FromSeconds(30),
-                    Priority = CacheItemPriority.High
-                };
-                _cache.Set(cacheProdutosPorCategoriaKey, produtos, cacheOptions);
-            }
-            else
+            if (produtos is null || !produtos.Any())
             {
                 _logger.LogWarning($"Get - Produtos com categoria id={id} não encontrados");
                 return NotFound($"Produtos com categoria id={id} não encontrados...");
             }
             
+            SetCache(cacheKey, produtos);
         }
 
         var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
@@ -295,18 +250,7 @@ public class ProdutosController : ControllerBase
 
         var produtoCriadoDto = _mapper.Map<ProdutoDTO>(produtoCriado);
 
-        _cache.Remove(CacheProdutosKey);
-
-        var cacheProdutoIdKey = $"ProdutosCache_{produtoCriado.ProdutoId}";
-
-        var cacheOptions = new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
-            SlidingExpiration = TimeSpan.FromSeconds(30),
-            Priority = CacheItemPriority.High
-        };
-
-        _cache.Set(cacheProdutoIdKey, produtoCriado, cacheOptions);
+        InvalidateCacheAfterChange(produtoCriado.ProdutoId, produtoCriado);
 
         return new CreatedAtRouteResult("ObterProduto", new { id = produtoCriado.ProdutoId }, produtoCriado);
         
@@ -367,14 +311,7 @@ public class ProdutosController : ControllerBase
         _unitOfWork.ProdutosRepository.Update(produto);
         await _unitOfWork.CommitAsync();
 
-        _cache.Set($"ProdutosCache_{id}", produto, new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
-            SlidingExpiration = TimeSpan.FromSeconds(30),
-            Priority = CacheItemPriority.High
-        });
-
-        _cache.Remove(CacheProdutosKey);
+        InvalidateCacheAfterChange(id, produto);
 
         return Ok(_mapper.Map<ProdutoDTOUpdateResponse>(produto));
     }
@@ -421,14 +358,7 @@ public class ProdutosController : ControllerBase
 
         var produtoAtualizadoDto = _mapper.Map<ProdutoDTO>(produtoAtualizado);
 
-        _cache.Set($"ProdutosCache_{id}", produtoAtualizadoDto, new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
-            SlidingExpiration = TimeSpan.FromSeconds(30),
-            Priority = CacheItemPriority.High
-        });
-
-        _cache.Remove(CacheProdutosKey);
+        InvalidateCacheAfterChange(id, produtoAtualizado);
 
         return Ok(produtoAtualizadoDto);
     }
@@ -456,10 +386,36 @@ public class ProdutosController : ControllerBase
 
         var produtoRemovidoDto = _mapper.Map<ProdutoDTO>(produtoRemovido);
 
-        _cache.Remove($"ProdutosCache_{id}");
-        _cache.Remove(CacheProdutosKey);
+        InvalidateCacheAfterChange(id);
 
         return Ok(produtoRemovidoDto);
 
+    }
+
+    private static string GetCacheProdutosKey(int id) => $"ProdutosCache_{id}";
+    private static string GetCacheProdutosCategoriaKey(int id) => $"ProdutosCache_Categoria_{id}";
+    private static string GetCacheProdutosKey(ProdutosParameters produtosParameters) => $"ProdutosCache_{produtosParameters.PageNumber}_{produtosParameters.PageSize}";
+    private static string GetCacheProdutosKey(ProdutosFiltroPreco produtosFiltroParameters) => $"ProdutosCache_{produtosFiltroParameters.PageNumber}_{produtosFiltroParameters.PageSize}";
+
+    private void SetCache<T>(string key, T data)
+    {
+        var cacheOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+            SlidingExpiration = TimeSpan.FromSeconds(30),
+            Priority = CacheItemPriority.High
+        };
+        _cache.Set(key, data, cacheOptions);
+    }
+
+    private void InvalidateCacheAfterChange(int id, Produto? produto = null)
+    {
+        _cache.Remove(CacheProdutosKey);
+        _cache.Remove($"ProdutosCache_{id}");
+
+        if (produto is not null)
+        {
+            SetCache(GetCacheProdutosKey(id), produto);
+        }
     }
 }

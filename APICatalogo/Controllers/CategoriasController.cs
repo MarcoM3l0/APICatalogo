@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 
 namespace APICatalogo.Controllers;
@@ -36,18 +37,24 @@ public class CategoriasController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly ILogger<CategoriasController> _logger;
 
+    private readonly IMemoryCache _cache;
+    private const string CacheCategoriasKey = "CategoriasCache";
+
     /// <summary>
     /// Inicializa uma nova instância da classe <see cref="CategoriasController"/>.
     /// </summary>
     /// <param name="unitOfWork">Unidade de trabalho para operações com o banco de dados</param>
     /// <param name="configuration">Configuração da aplicação</param>
     /// <param name="logger">Logger para registro de eventos</param>
-    public CategoriasController(IUnitOfWork unitOfWork, IConfiguration configuration, ILogger<CategoriasController> logger)
+    /// <param name="cache">Cache em memória para otimização de desempenho</param>
+    public CategoriasController(IUnitOfWork unitOfWork, IConfiguration configuration, ILogger<CategoriasController> logger, IMemoryCache cache)
     {
         _unitOfWork = unitOfWork;
         _configuration = configuration;
         _logger = logger;
+        _cache = cache;
     }
+    
     private ActionResult<IEnumerable<CategoriaDTO>> ObterCategorias(PagedList<Categoria> categorias)
     {
         var metadata = new
@@ -79,15 +86,28 @@ public class CategoriasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> Get()
     {
-        var categorias = await _unitOfWork.CategoriasRepository.GetAllAsync();
-
-        if (categorias is null)
+        if(!_cache.TryGetValue(CacheCategoriasKey, out IEnumerable<Categoria>? categorias))
         {
-            _logger.LogWarning("Get - Categorias não encontradas...");
-            return NotFound("Categorias não encontradas...");
+            categorias = await _unitOfWork.CategoriasRepository.GetAllAsync();
+
+            if (categorias is not null && categorias.Any())
+            { 
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1), 
+                    SlidingExpiration = TimeSpan.FromSeconds(30), 
+                    Priority = CacheItemPriority.High 
+                };
+                _cache.Set(CacheCategoriasKey, categorias, cacheOptions);
+            }
+            else 
+            { 
+                _logger.LogWarning("Get - Categorias não encontradas...");
+                return NotFound("Categorias não encontradas...");
+            }
         }
 
-        var categoriasDto = categorias.ToCategoriaDtoList();
+        var categoriasDto = categorias?.ToCategoriaDtoList();
 
         return Ok(categoriasDto);
     }
@@ -106,16 +126,30 @@ public class CategoriasController : ControllerBase
         //throw new Exception("Erro ao buscar categoria..."); // Simulando erro para teste do middleware
         //throw new ArgumentException("Ocorreu um erro no tratamento de request"); // Simulando erro para teste
 
+        var cacheCategoriaIdKey = $"CategoriasCache_{id}";
 
-        var categoria = await _unitOfWork.CategoriasRepository.GetAsync(c => c.CategoriaId == id);
-
-        if (categoria is null)
+        if(!_cache.TryGetValue(cacheCategoriaIdKey, out Categoria? categoria))
         {
-            _logger.LogWarning($"Get - Categoria com id={id} não encontrada");
-            return NotFound($"Categoria com id={id} não encontrada...");
+            categoria = await _unitOfWork.CategoriasRepository.GetAsync(c => c.CategoriaId == id);
+
+            if (categoria is not null)
+            {
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30),
+                    SlidingExpiration = TimeSpan.FromSeconds(15),
+                    Priority = CacheItemPriority.High
+                };
+                _cache.Set(cacheCategoriaIdKey, categoria, cacheOptions);
+            }
+            else
+            {
+                _logger.LogWarning("Get - Categorias não encontradas...");
+                return NotFound("Categorias não encontradas...");
+            }
         }
 
-        var categoriaDto = categoria.ToCategoriaDTO();
+        var categoriaDto = categoria?.ToCategoriaDTO();
 
         return Ok(categoriaDto);
 
@@ -131,12 +165,27 @@ public class CategoriasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> Get([FromQuery] CategoriasParameters categoriasParameters)
     {
-        var categorias = await _unitOfWork.CategoriasRepository.GetCategoriasAsync(categoriasParameters);
 
-        if (categorias is null || !categorias.Any())
+        string cacheParametersKey = $"{CacheCategoriasKey}_{categoriasParameters.PageNumber}_{categoriasParameters.PageSize}";
+
+        if (!_cache.TryGetValue(cacheParametersKey, out PagedList<Categoria>? categorias))
         {
-            _logger.LogWarning("Get - Categorias não encontradas com paginação");
-            return NotFound("Categorias não encontradas...");
+            categorias = await _unitOfWork.CategoriasRepository.GetCategoriasAsync(categoriasParameters);
+            if (categorias is not null && categorias.Any())
+            {
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                    SlidingExpiration = TimeSpan.FromSeconds(30),
+                    Priority = CacheItemPriority.High
+                };
+                _cache.Set(cacheParametersKey, categorias, cacheOptions);
+            }
+            else
+            {
+                _logger.LogWarning("Get - Categorias não encontradas...");
+                return NotFound("Categorias não encontradas...");
+            }
         }
 
         return ObterCategorias(categorias);
@@ -152,12 +201,26 @@ public class CategoriasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> GetCategoriaFiltroNome([FromQuery] CategoriasFiltroNome categoriasFiltroNome)
     {
-        var categorias = await _unitOfWork.CategoriasRepository.GetCategoriasFiltroNomeAsync(categoriasFiltroNome);
+        string cacheFiltroNomeKey = $"{CacheCategoriasKey}_FiltroNome_{categoriasFiltroNome.Nome}_{categoriasFiltroNome.PageNumber}_{categoriasFiltroNome.PageSize}";
 
-        if (categorias is null || !categorias.Any())
+        if (!_cache.TryGetValue(cacheFiltroNomeKey, out PagedList<Categoria>? categorias))
         {
-            _logger.LogWarning("GetCategoriaFiltroNome - Categorias não encontradas com filtro de nome");
-            return NotFound("Categorias não encontradas...");
+            categorias = await _unitOfWork.CategoriasRepository.GetCategoriasFiltroNomeAsync(categoriasFiltroNome);
+            if (categorias is not null && categorias.Any())
+            {
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                    SlidingExpiration = TimeSpan.FromSeconds(30),
+                    Priority = CacheItemPriority.High
+                };
+                _cache.Set(cacheFiltroNomeKey, categorias, cacheOptions);
+            }
+            else
+            {
+                _logger.LogWarning("GetCategoriaFiltroNome - Categorias não encontradas com filtro de nome");
+                return NotFound("Categorias não encontradas...");
+            }
         }
 
         return ObterCategorias(categorias);
@@ -209,6 +272,19 @@ public class CategoriasController : ControllerBase
             return BadRequest("CategoriaDTO criada é nula...");
         }
 
+        _cache.Remove(CacheCategoriasKey);
+
+        var cacheCategoriaIdKey = $"CategoriasCache_{categoriaDtoCriada.CategoriaId}";
+
+        var cacheOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30),
+            SlidingExpiration = TimeSpan.FromSeconds(15),
+            Priority = CacheItemPriority.High
+        };
+
+        _cache.Set(cacheCategoriaIdKey, categoriaDtoCriada, cacheOptions);
+
         return new CreatedAtRouteResult("ObterCategoria", new { id = categoriaDtoCriada.CategoriaId }, categoriaDtoCriada);
         
     }
@@ -256,6 +332,15 @@ public class CategoriasController : ControllerBase
 
         var categoriaDtoAtualizada = categoria.ToCategoriaDTO();
 
+        _cache.Set($"CategoriasCache_{id}", categoriaDtoAtualizada, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30),
+            SlidingExpiration = TimeSpan.FromSeconds(15),
+            Priority = CacheItemPriority.High
+        });
+
+        _cache.Remove(CacheCategoriasKey);
+
         return Ok(categoriaDtoAtualizada);
         
     }
@@ -286,6 +371,9 @@ public class CategoriasController : ControllerBase
         await _unitOfWork.CommitAsync();
 
         var categoriaDtoExcluida = categoriaExcluida.ToCategoriaDTO();
+
+        _cache.Remove($"CategoriasCache_{id}");
+        _cache.Remove(CacheCategoriasKey);
 
         return Ok(categoriaDtoExcluida);
     }

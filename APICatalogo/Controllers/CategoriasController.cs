@@ -54,6 +54,7 @@ public class CategoriasController : ControllerBase
         _logger = logger;
         _cache = cache;
     }
+    
     private ActionResult<IEnumerable<CategoriaDTO>> ObterCategorias(PagedList<Categoria> categorias)
     {
         var metadata = new
@@ -164,12 +165,27 @@ public class CategoriasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> Get([FromQuery] CategoriasParameters categoriasParameters)
     {
-        var categorias = await _unitOfWork.CategoriasRepository.GetCategoriasAsync(categoriasParameters);
 
-        if (categorias is null || !categorias.Any())
+        string cacheParametersKey = $"{CacheCategoriasKey}_{categoriasParameters.PageNumber}_{categoriasParameters.PageSize}";
+
+        if (!_cache.TryGetValue(cacheParametersKey, out PagedList<Categoria>? categorias))
         {
-            _logger.LogWarning("Get - Categorias não encontradas com paginação");
-            return NotFound("Categorias não encontradas...");
+            categorias = await _unitOfWork.CategoriasRepository.GetCategoriasAsync(categoriasParameters);
+            if (categorias is not null && categorias.Any())
+            {
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                    SlidingExpiration = TimeSpan.FromSeconds(30),
+                    Priority = CacheItemPriority.High
+                };
+                _cache.Set(cacheParametersKey, categorias, cacheOptions);
+            }
+            else
+            {
+                _logger.LogWarning("Get - Categorias não encontradas...");
+                return NotFound("Categorias não encontradas...");
+            }
         }
 
         return ObterCategorias(categorias);
@@ -185,12 +201,26 @@ public class CategoriasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> GetCategoriaFiltroNome([FromQuery] CategoriasFiltroNome categoriasFiltroNome)
     {
-        var categorias = await _unitOfWork.CategoriasRepository.GetCategoriasFiltroNomeAsync(categoriasFiltroNome);
+        string cacheFiltroNomeKey = $"{CacheCategoriasKey}_FiltroNome_{categoriasFiltroNome.Nome}_{categoriasFiltroNome.PageNumber}_{categoriasFiltroNome.PageSize}";
 
-        if (categorias is null || !categorias.Any())
+        if (!_cache.TryGetValue(cacheFiltroNomeKey, out PagedList<Categoria>? categorias))
         {
-            _logger.LogWarning("GetCategoriaFiltroNome - Categorias não encontradas com filtro de nome");
-            return NotFound("Categorias não encontradas...");
+            categorias = await _unitOfWork.CategoriasRepository.GetCategoriasFiltroNomeAsync(categoriasFiltroNome);
+            if (categorias is not null && categorias.Any())
+            {
+                var cacheOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                    SlidingExpiration = TimeSpan.FromSeconds(30),
+                    Priority = CacheItemPriority.High
+                };
+                _cache.Set(cacheFiltroNomeKey, categorias, cacheOptions);
+            }
+            else
+            {
+                _logger.LogWarning("GetCategoriaFiltroNome - Categorias não encontradas com filtro de nome");
+                return NotFound("Categorias não encontradas...");
+            }
         }
 
         return ObterCategorias(categorias);
@@ -341,6 +371,9 @@ public class CategoriasController : ControllerBase
         await _unitOfWork.CommitAsync();
 
         var categoriaDtoExcluida = categoriaExcluida.ToCategoriaDTO();
+
+        _cache.Remove($"CategoriasCache_{id}");
+        _cache.Remove(CacheCategoriasKey);
 
         return Ok(categoriaDtoExcluida);
     }

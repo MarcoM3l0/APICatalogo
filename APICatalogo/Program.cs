@@ -197,6 +197,17 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddMemoryCache();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("EnableCORS", builder =>
+    {
+       builder.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .Build();
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -218,6 +229,7 @@ app.UseRouting();
 app.UseRateLimiter();
 
 app.UseCors("CorsPolicy");
+app.UseCors("EnableCORS");
 
 app.UseAuthorization();
 
